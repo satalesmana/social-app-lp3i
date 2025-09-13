@@ -1,7 +1,7 @@
 {
   "name": "social-apps",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -12,10 +12,11 @@
     "@expo/metro-runtime": "~5.0.4",
     "@expo/vector-icons": "^15.0.0",
     "@react-native-async-storage/async-storage": "2.1.2",
-    "@rneui/base": "^4.0.0-rc.8",
-    "@rneui/themed": "^4.0.0-rc.8",
     "@supabase/supabase-js": "^2.56.0",
     "expo": "~53.0.22",
+    "expo-constants": "~17.1.7",
+    "expo-linking": "~7.1.7",
+    "expo-router": "~5.1.5",
     "expo-status-bar": "~2.2.3",
     "nativewind": "^4.1.23",
     "react": "19.0.0",
@@ -24,6 +25,7 @@
     "react-native-dotenv": "^3.4.11",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1",
     "react-native-web": "^0.20.0"
   },
   "devDependencies": {
