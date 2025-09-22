@@ -27,7 +27,7 @@ export default function SplashScreen(){
 
     return(
         <View className='items-center justify-center flex-1 max-w-screen-sm mx-auto'>
-            <Text>Welcome to the app!</Text>
+            <Text>Welcome to the Aplikasi!</Text>
         </View>
     )
 }
