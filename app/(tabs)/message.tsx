@@ -1,20 +1,93 @@
 import React from 'react'
 import { SafeAreaView,Platform, KeyboardAvoidingView, View, Text, FlatList, TextInput, Button } from 'react-native'
 import { Session } from '@supabase/supabase-js'
-
+import { supabase } from "../../lib/supabase";
+type Message = {
+    id: number;
+    user_id: string;
+    message: string;
+    email: string;
+    created_at: string;
+};
 
 export default function MessagePage(){
     const [session, setSession] = React.useState<Session | null>(null)
     const [input, setInput] = React.useState("")
-    const [messages, setMessage] = React.useState([
-        { id:"s", message:"tes", user_id:"asdf"},
-        { id:"ss", message:"tes", user_id:"asddddf"},
-        { id:"sasdf",message:"tes", user_id:"sss"},
-        { id:"sas", message:"tes", user_id:"asdf"},
-    ])
+    const [messages, setMessage] = React.useState<Message[]>([]);
+
+    React.useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session)
+        }).catch((error) => {
+            console.error("Error getting session:", error)
+        })
+
+        fetchMessages();
+
+        const channel = supabase
+            .channel("messages-channel")
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "message" },
+                (payload) => {
+                    setMessage((prev) => {
+                        if (payload.eventType === "INSERT") {
+                            // Add new message to the top
+                            return [payload.new as Message, ...prev];
+                        }
+                        if (payload.eventType === "UPDATE") {
+                            // Update the message in the list
+                            return prev.map((msg) =>
+                                msg.id === payload.new.id ? payload.new as Message : msg
+                            );
+                        }
+                        if (payload.eventType === "DELETE") {
+                            // Remove the deleted message
+                            return prev.filter((msg) => msg.id !== payload.old.id);
+                        }
+                        return prev;
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+     },[]);
+
+    async function fetchMessages() {
+        const { data } = await supabase
+            .schema('public')
+            .from("message")
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(50);
+        setMessage(data);
+    }
+
+    async function sendMessage() {
+        if (!input.trim()) return;
+
+        const data = { 
+            user_id: session?.user.id, 
+            message: input,
+            email: session?.user.email
+        }
+
+        const { error } =  await supabase
+            .schema('public')
+            .from("message")
+            .insert(data)
+
+        setInput("");
+        if(error){
+            console.error("Error sending message:", error);
+        }
+    }
 
     const renderMessage = ({ item }:any) => {
-        const isMe = item.user_id === "asdf" //session?.user.id;
+        const isMe = item.user_id === session?.user.id;
         return (
             <View
                 style={{
@@ -33,9 +106,6 @@ export default function MessagePage(){
             </View>
         );
     };
-
-
-    const sendMessage=()=>{}
 
     return(
          <KeyboardAvoidingView
