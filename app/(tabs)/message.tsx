@@ -2,6 +2,8 @@ import React from 'react'
 import { SafeAreaView,Platform, KeyboardAvoidingView, View, Text, FlatList, TextInput, Button } from 'react-native'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from "../../lib/supabase";
+import dayjs from 'dayjs';
+
 type Message = {
     id: number;
     user_id: string;
@@ -99,9 +101,10 @@ export default function MessagePage(){
                     maxWidth: "75%",
                 }}
             >
+                <Text className="text-[14px]">{item.email}</Text>
                 <Text className="text-[16px]">{item.message}</Text>
                 <Text className="text-[10px] text-neutral-500 mt-1 text-right">
-                    {/* {dayjs(item.created_at).format("HH:mm")} */}
+                    {dayjs(item.created_at).format("HH:mm")}
                 </Text>
             </View>
         );

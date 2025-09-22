@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import {  StyleSheet, View, AppState } from 'react-native'
+import {  StyleSheet, View, AppState, Button, TextInput } from 'react-native'
 import { supabase } from '../lib/supabase'
-import { Button, Input } from '@rneui/themed'
 import { AlertDialog } from "./global/Alert"
 
 AppState.addEventListener('change', (state) => {
@@ -76,9 +75,7 @@ export default function Auth() {
   return (
     <View style={styles.container}>
       <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Input
-          label="Email"
-          leftIcon={{ type: 'font-awesome', name: 'envelope' }}
+        <TextInput
           onChangeText={(text) => setEmail(text)}
           value={email}
           placeholder="email@address.com"
@@ -86,9 +83,7 @@ export default function Auth() {
         />
       </View>
       <View style={styles.verticallySpaced}>
-        <Input
-          label="Password"
-          leftIcon={{ type: 'font-awesome', name: 'lock' }}
+        <TextInput
           onChangeText={(text) => setPassword(text)}
           value={password}
           secureTextEntry={true}
