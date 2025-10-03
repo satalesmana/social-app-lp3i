@@ -1,103 +1,112 @@
 import { FontAwesome5, Feather } from "@expo/vector-icons";
-import { View, Text, Image, ScrollView, TouchableOpacity, Pressable } from "react-native";
-import { supabase } from '../../lib/supabase';
-import { router } from "expo-router"
+import { View, Text, Image, ScrollView, TouchableOpacity, Pressable, Alert, Platform } from "react-native";
+import { supabase } from "../../lib/supabase";
+import { router } from "expo-router";
 
-
-export default function AccountPage(){
-    const onSignOut=async()=>{
-        const { error } = await supabase.auth.signOut({ scope: 'local' })
-
-        if(!error){
-            router.replace("login")
+export default function AccountPage() {
+  const onSignOut = async () => {
+    if (Platform.OS === "web") {
+      const confirm = window.confirm("Apakah kamu yakin ingin logout?");
+      if (confirm) {
+        const { error } = await supabase.auth.signOut({ scope: "local" });
+        if (!error) {
+          router.replace("login");
         }
+      }
+    } else {
+      Alert.alert("Konfirmasi Logout", "Apakah kamu yakin ingin keluar?", [
+        { text: "Batal", style: "cancel" },
+        {
+          text: "Ya, Logout",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await supabase.auth.signOut({ scope: "local" });
+            if (!error) {
+              router.replace("login");
+            }
+          },
+        },
+      ]);
     }
+  };
 
-    const onEditProfile=()=>{
-        router.push("edit-profile")
-    }
+  const onEditProfile = () => {
+    router.push("edit-profile");
+  };
 
-    return(
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        {/* Header */}
-        <View className="bg-green-500 rounded-b-3xl pb-16 items-center">
-          {/* Profile Image */}
-          <Image
-            source={{
-              uri: "https://i.pravatar.cc/150?img=5", // demo avatar
-            }}
-            className="w-20 h-20 rounded-full mt-6 border-4 border-white"
-          />
-          <Text className="text-white text-lg font-semibold mt-2">Bill</Text>
-          <Text className="text-white text-sm">nickedward@gmail.com</Text>
+  return (
+    <ScrollView className="bg-white flex-1">
+      {/* Cover */}
+      <View className="w-full h-32 bg-blue-500" />
+
+      {/* Profile Section */}
+      <View className="px-4 -mt-12">
+        <Image
+          source={{ uri: "https://i.pravatar.cc/150?img=5" }}
+          className="w-24 h-24 rounded-full border-4 border-white"
+        />
+        <Text className="text-lg font-bold mt-2">adi</Text>
+        <Text className="text-gray-500">@bill_demo</Text>
+        <Text className="mt-2 text-sm text-gray-700">
+          Just a simple bio here ✨ | Developer | Coffee Lover ☕
+        </Text>
+
+        {/* Stats */}
+        <View className="flex-row space-x-6 mt-3">
+          <Text>
+            <Text className="font-bold">123</Text> Following
+          </Text>
+          <Text>
+            <Text className="font-bold">456</Text> Followers
+          </Text>
         </View>
 
-        {/* Card Section */}
-        <View className="mx-5 -mt-10 bg-white rounded-2xl p-5 shadow-md">
-          {/* Buttons Row */}
-          <View className="flex-row justify-between mb-6">
-            <TouchableOpacity className="items-center">
-              <View className="bg-green-100 p-4 rounded-xl">
-                <FontAwesome5 name="wallet" size={20} color="#22c55e" />
-              </View>
-              <Text className="text-xs mt-2">Payment</Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity className="items-center">
-              <View className="bg-green-100 p-4 rounded-xl">
-                <Feather name="settings" size={20} color="#22c55e" />
-              </View>
-              <Text className="text-xs mt-2">Settings</Text>
-            </TouchableOpacity>
+      {/* Divider */}
+      <View className="border-b border-gray-200 mt-4" />
 
-            <TouchableOpacity className="items-center">
-              <View className="bg-green-100 p-4 rounded-xl">
-                <Feather name="bell" size={20} color="#22c55e" />
-              </View>
-              <Text className="text-xs mt-2">Notification</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Sample Tabs */}
+      <View className="flex-row justify-around py-3">
+        <Text className="font-semibold text-green-600">Posts</Text>
+        <Text className="text-gray-500">Replies</Text>
+        <Text className="text-gray-500">Media</Text>
+        <Text className="text-gray-500">Likes</Text>
+      </View>
 
-          {/* Info Section */}
-          <View className="space-y-4">
-            <View className="flex-row justify-between">
-              <Text className="text-gray-500">Name</Text>
-              <Text className="text-green-600 font-medium">Sata Lesmana</Text>
-            </View>
-
-            <View className="flex-row justify-between">
-              <Text className="text-gray-500">E-mail</Text>
-              <Text className="text-gray-700">demo@gmail.com</Text>
-            </View>
-
-            <View className="flex-row justify-between">
-              <Text className="text-gray-500">Gender:</Text>
-              <Text className="text-gray-700">Male</Text>
-            </View>
-
-            <View className="flex-row justify-between">
-              <Text className="text-gray-500">Address:</Text>
-              <Text className="text-gray-700 w-40 text-right">
-                Jl. demo ts
+      {/* Post List Example */}
+      <View className="border-t border-gray-200">
+        {[1, 2, 3].map((item) => (
+          <View key={item} className="flex-row px-4 py-3 border-b border-gray-200">
+            <Image
+              source={{ uri: "https://i.pravatar.cc/100?img=12" }}
+              className="w-10 h-10 rounded-full mr-3"
+            />
+            <View className="flex-1">
+              <Text className="font-semibold">Bill</Text>
+              <Text className="text-gray-700">
+                Ini contoh postingan ke-{item} yang tampil di profil 🚀
               </Text>
             </View>
           </View>
-        </View>
-
-        <View className="mx-5 mt-5">
-            <Pressable 
-                onPress={onEditProfile}
-                className="py-2 flex items-center justify-center h-[50px] rounded-2xl bg-[#22c55e]">
-                <Text className="text-white">Edit Profile</Text>
+        ))}
+      </View>
+        {/* Edit Profile & Logout */}
+          <View className="flex-row mt-4 space-x-3">
+            <Pressable
+              onPress={onEditProfile}
+              className="flex-1 py-2 rounded-2xl border border-gray-300 flex items-center justify-center"
+            >
+              <Text className="font-semibold text-gray-700">Edit Profile</Text>
             </Pressable>
 
-            <Pressable 
-                onPress={onSignOut}
-                className="py-2 mt-4 flex items-center justify-center h-[50px] rounded-2xl bg-[#911b03]">
-                <Text className="text-white">Logout</Text>
-            </Pressable>
+          <Pressable
+            onPress={onSignOut}
+            className="flex-1 py-2 rounded-2xl bg-[#911b03] flex items-center justify-center"
+          >
+            <Text className="font-semibold text-white">Logout</Text>
+          </Pressable>
         </View>
-
-      </ScrollView>
-    )
+      </View>
+    </ScrollView>
+  );
 }
