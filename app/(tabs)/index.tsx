@@ -1,93 +1,85 @@
-import { View, Text, Image, ScrollView} from "react-native";
-import { Ionicons, Feather } from "@expo/vector-icons";
-import "../../global.css"
+import React, { useEffect, useState } from "react";
+import { View, Text, FlatList, Image, ActivityIndicator } from "react-native";
+import { supabase } from "../../lib/supabase";
 
-const posts = [
-  {
-    id: 1,
-    user: "Devon Lane",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/300",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-  {
-    id: 2,
-    user: "Darlene Robertson",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-  {
-    id: 3,
-    user: "Darlene Robertson",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-  {
-    id: 4,
-    user: "Darlene Robertson",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-];
+export default function HomePage() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default function HomeScreen(){
-    return(
-        <ScrollView>
-            {posts.map((post) => (
-                <View key={post.id} className="border-b border-gray-200 p-4">
-                {/* Header */}
-                <View className="flex-row items-center mb-2">
-                    <Image
-                    source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
-                    className="w-10 h-10 rounded-full mr-3"
-                    />
-                    <View>
-                    <Text className="font-bold">{post.user}</Text>
-                    <Text className="text-gray-500">{post.handle}</Text>
-                    </View>
-                </View>
-                {/* Content */}
-                <Text className="mb-2">{post.text}</Text>
-                {post.image && (
-                    <Image
-                    source={{ uri: post.image }}
-                    className="w-full h-48 rounded-xl mb-2"
-                    resizeMode="cover"
-                    />
-                )}
-                {/* Actions */}
-                <View className="flex-row justify-between mt-2">
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="chatbubble-outline" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.comments}</Text>
-                    </View>
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="repeat" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.shares}</Text>
-                    </View>
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="heart-outline" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.likes}</Text>
-                    </View>
-                    <Feather name="share" size={20} color="gray" />
-                </View>
-                </View>
-            ))}
-        </ScrollView>
-    )
+  const fetchPosts = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("postingan")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetch posts:", error);
+    } else {
+      setPosts(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchPosts();
+
+    // realtime listener 🔥
+    const channel = supabase
+      .channel("postingan-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "postingan" },
+        (payload) => {
+          console.log("Realtime change:", payload);
+          fetchPosts(); // refresh otomatis
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color="blue" />
+        <Text>Memuat postingan...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={posts}
+      keyExtractor={(item) => item.id}
+      contentContainerStyle={{ padding: 16 }}
+      renderItem={({ item }) => (
+        <View className="mb-5 bg-white p-4 rounded-lg shadow">
+          {/* Email user */}
+          <Text className="font-semibold text-gray-700 mb-1">{item.email}</Text>
+
+          {/* Isi konten */}
+          <Text className="text-gray-800 mb-2">{item.content}</Text>
+
+          {/* Jika ada gambar */}
+          {item.image_url && (
+            <Image
+              source={{ uri: item.image_url }}
+              style={{ width: "100%", height: 200, borderRadius: 10 }}
+              resizeMode="cover"
+            />
+          )}
+
+          {/* Waktu */}
+          <Text className="text-xs text-gray-400 mt-2">
+            {new Date(item.created_at).toLocaleString()}
+          </Text>
+        </View>
+      )}
+    />
+  );
 }
+  
