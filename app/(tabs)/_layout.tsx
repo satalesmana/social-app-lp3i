@@ -6,27 +6,28 @@ export default function TabLayout() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768; // switch layout for tablet/desktop
 
-  if(isDesktop){
+  if (isDesktop) {
     return (
       <View className="flex flex-row flex-wrap justify-center">
-        <View className="w-1/6  h-screen">
+        <View className="w-1/6 h-screen p-4">
           <Text className="text-xl font-bold mb-6">Logo</Text>
-          <Pressable 
+
+          <Pressable
             className="text-lg mb-4"
-            onPress={()=> router.push("/")}>
-              Home
-          </Pressable>
-          
-          <Pressable 
-            className="text-lg mb-4"
-            onPress={()=> router.push("/message")}>
-              Message
+            onPress={() => router.push("/")}>
+            Home
           </Pressable>
 
-          <Pressable 
+          <Pressable
             className="text-lg mb-4"
-            onPress={()=> router.push("/account")}>
-              Account
+            onPress={() => router.push("/message")}>
+            Message
+          </Pressable>
+
+          <Pressable
+            className="text-lg mb-4"
+            onPress={() => router.push("/account")}>
+            Account
           </Pressable>
 
           <TouchableOpacity className="bg-sky-500 py-2 px-4 rounded-md">
@@ -34,15 +35,11 @@ export default function TabLayout() {
           </TouchableOpacity>
         </View>
 
-        <View className="w-2/5 h-screen  border-x border-gray-200 mx-4">
+        <View className="w-2/5 h-screen border-x border-gray-200 mx-4">
           <Stack>
-            <Stack.Screen name='index' options={{title:"Home"}} />
+            <Stack.Screen name='index' options={{ title: "Home" }} />
           </Stack>
         </View>
-
-        <View className="w-1/6  h-scree">
-          <Text>asdf</Text>
-        </View> 
       </View>
     )
   }
