@@ -19,6 +19,12 @@ export default function TabLayout() {
           
           <Pressable 
             className="text-lg mb-4"
+            onPress={()=> router.push("/search")}>
+              Search
+          </Pressable>
+
+          <Pressable 
+            className="text-lg mb-4"
             onPress={()=> router.push("/message")}>
               Message
           </Pressable>
@@ -55,6 +61,13 @@ export default function TabLayout() {
           title: 'Home',
         }}
       />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+        }}
+      />
+
       <Tabs.Screen
         name="message"
         options={{
