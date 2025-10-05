@@ -1,74 +1,82 @@
-import React, { useState } from 'react'
-import {  StyleSheet, View, AppState, Button, TextInput } from 'react-native'
-import { supabase } from '../lib/supabase'
-import { AlertDialog } from "./global/Alert"
+import React, { useState } from 'react';
+import { StyleSheet, View, AppState, Button, TextInput } from 'react-native';
+// Pastikan updateProfile di-import dari lib/supabase
+import { supabase, updateProfile } from '../lib/supabase'; 
+import { AlertDialog } from "./global/Alert";
 
 AppState.addEventListener('change', (state) => {
   if (state === 'active') {
-    supabase.auth.startAutoRefresh()
+    supabase.auth.startAutoRefresh();
   } else {
-    supabase.auth.stopAutoRefresh()
+    supabase.auth.stopAutoRefresh();
   }
-})
+});
 
 export default function Auth() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
   const [errMsg, setErrMsg] = useState("");
-  const [alertTitle, setAlertTitile]= useState("")
+  const [alertTitle, setAlertTitle] = useState("");
 
   async function signInWithEmail() {
-    try{
-      setLoading(true)
+    try {
+      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
-      })
+      });
 
-      if (error){
-        throw new Error(error.message)
+      if (error) {
+        throw new Error(error.message);
       }
-    }catch(err){
-      const msg = err?.message ? err.message : "message undefine";
-      setAlertTitile("Error")
-      setErrMsg(msg)
-      setVisible(true)
-      console.log('err', err)
-    }finally{
-      setLoading(false)
+    } catch (err: any) {
+      const msg = err?.message ? err.message : "An unknown error occurred";
+      setAlertTitle("Error");
+      setErrMsg(msg);
+      setVisible(true);
+      console.log('err', err);
+    } finally {
+      setLoading(false);
     }
   }
 
   async function signUpWithEmail() {
-    try{
-      setLoading(true)
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.signUp({
+    try {
+      setLoading(true);
+      // --- PERBAIKAN DI SINI ---
+      // Kita ambil 'user' dan 'session' dari dalam 'data'
+      const { data: { user, session }, error } = await supabase.auth.signUp({
         email: email,
         password: password,
-      })
+      });
 
-      if (error){
-        throw new Error(error.message)
+      if (error) {
+        throw new Error(error.message);
       }
 
-      if (!session){
-        setAlertTitile("Info")
-        setErrMsg('Please check your inbox for email verification!')
-        setVisible(true)
+      // Jika pendaftaran berhasil dan objek 'user' ada, buat profil di DB kedua
+      if (user) {
+        await updateProfile(user.id, {
+          email: user.email, // Mencantumkan email ke DB kedua
+        });
       }
-    }catch(err){
-      const msg = err?.message ? err.message : "message undefine";
-      setAlertTitile("Error")
-      setErrMsg(msg)
-      setVisible(true)
-      console.log('err', err)
-    }finally{
-      setLoading(false)
+      // --------------------------
+
+      if (!session) {
+        setAlertTitle("Info");
+        setErrMsg('Please check your inbox for email verification!');
+        setVisible(true);
+      }
+    } catch (err: any) {
+      const msg = err?.message ? err.message : "An unknown error occurred";
+      setAlertTitle("Error");
+      setErrMsg(msg);
+      setVisible(true);
+      console.log('err', err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -80,6 +88,7 @@ export default function Auth() {
           value={email}
           placeholder="email@address.com"
           autoCapitalize={'none'}
+          style={styles.input} // Tambahkan style agar terlihat
         />
       </View>
       <View style={styles.verticallySpaced}>
@@ -89,6 +98,7 @@ export default function Auth() {
           secureTextEntry={true}
           placeholder="Password"
           autoCapitalize={'none'}
+          style={styles.input} // Tambahkan style agar terlihat
         />
       </View>
       <View style={[styles.verticallySpaced, styles.mt20]}>
@@ -105,7 +115,7 @@ export default function Auth() {
         onClose={() => setVisible(false)}
       />
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -121,4 +131,10 @@ const styles = StyleSheet.create({
   mt20: {
     marginTop: 20,
   },
-})
+  input: { // Style tambahan agar input terlihat lebih baik
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 5,
+  }
+});

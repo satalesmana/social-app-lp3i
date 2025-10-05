@@ -13,25 +13,6 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 export const supabaseProfile = createClient(SUPABASE_URL_2, SUPABASE_ANON_KEY_2)
 
-export const uploadImage = async (base64: string, fileName: string) => {
-  const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
-  const { data, error } = await supabase.storage
-    .from('social-apps') // replace with your bucket name
-    .upload(`${fileName}`, binary, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: 'image/jpeg', // or detect dynamically
-    })
-
-  if (error) {
-    console.error('Upload error:', error)
-    return null
-  }
-
-  console.log('Uploaded file:', data)
-  return data
-}
-
 // === PROFILE FUNCTIONS ===
 
 export type Profile = {
@@ -72,8 +53,8 @@ export const updateProfile = async (userId: string, updates: Partial<Profile>) =
   .upsert({
     id: userId,
     ...updates,
-    updated_at: new Date().toISOString(),
-    created_at: new Date().toISOString()
+    updated_at: new Date().toISOString(), // Hanya perbarui updated_at
+
   })
   .select()
   .single()
@@ -91,42 +72,62 @@ export const updateProfile = async (userId: string, updates: Partial<Profile>) =
  */
 export const uploadAvatar = async (userId: string, base64: string, fileName: string) => {
   try {
-    const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
-    const fileExt = fileName.split('.').pop()
-    const filePath = `${userId}/avatar.${fileExt}`
+    const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const fileExt = fileName.split('.').pop();
+    const contentType = `image/${fileExt}`; // Dinamis berdasarkan ekstensi file
+    const filePath = `${userId}/${new Date().getTime()}.${fileExt}`; // Nama file unik
 
     const { data, error } = await supabaseProfile.storage
       .from('avatars')
       .upload(filePath, binary, {
         cacheControl: '3600',
-        upsert: true,
-        contentType: 'image/jpeg',
-      })
+        upsert: true, // Upsert untuk menimpa file jika ada
+        contentType,
+      });
 
-    if (error) throw error
+    if (error) throw error;
 
     const { data: urlData } = supabaseProfile.storage
       .from('avatars')
-      .getPublicUrl(filePath)
+      .getPublicUrl(data.path);
 
-    return urlData.publicUrl
+    return urlData.publicUrl;
   } catch (error) {
-    console.error('Error in uploadAvatar:', error)
-    throw error
+    console.error('Error in uploadAvatar:', error);
+    throw error;
   }
 }
 
 /**
  * Delete avatar
  */
-export const deleteAvatar = async (userId: string) => {
-  const { error } = await supabaseProfile.storage
-    .from('avatars')
-    .remove([
-      `${userId}/avatar.jpg`, 
-      `${userId}/avatar.jpeg`, 
-      `${userId}/avatar.png`
-    ])
+export const deleteAvatar = async (avatarUrl: string) => {
+    if (!avatarUrl) return; // Jangan lakukan apa-apa jika URL kosong
 
-  if (error) console.error('Error deleting avatar:', error)
-}
+    try {
+        const bucketName = 'avatars';
+        // Ekstrak path file dari URL lengkap
+        const pathStartIndex = avatarUrl.indexOf(`/${bucketName}/`) + bucketName.length + 2;
+        const filePath = avatarUrl.substring(pathStartIndex);
+
+        if (!filePath) {
+            console.error("Could not extract file path from URL:", avatarUrl);
+            return;
+        }
+
+        const { error } = await supabaseProfile.storage
+            .from(bucketName)
+            .remove([filePath]);
+
+        if (error) {
+            // Jangan lempar error jika file tidak ditemukan, anggap saja sudah terhapus
+            if (error.message !== 'The resource was not found') {
+                 console.error('Error deleting file from storage:', error.message);
+                 throw error;
+            }
+        }
+    } catch (error) {
+        console.error('Exception in deleteAvatar:', error);
+        throw error;
+    }
+};

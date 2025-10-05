@@ -11,12 +11,10 @@ export default function AccountPage(){
     const [profile, setProfile] = useState<Profile | null>(null)
     const [userId, setUserId] = useState<string | null>(null)
 
-    useEffect(() => {
-        loadProfile()
-    }, [])
+    // useEffect(() => {
+    //     loadProfile()
+    // }, [])
 
-    // Add focus listener to reload profile when returning to this screen
-    // ✅ cara benar pakai useFocusEffect
     useFocusEffect(
       useCallback(() => {
         loadProfile()
