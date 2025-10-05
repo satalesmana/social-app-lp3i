@@ -19,6 +19,12 @@ export default function TabLayout() {
           
           <Pressable 
             className="text-lg mb-4"
+            onPress={()=> router.push("/search")}>
+              Search
+          </Pressable>
+
+          <Pressable 
+            className="text-lg mb-4"
             onPress={()=> router.push("/message")}>
               Message
           </Pressable>
@@ -56,6 +62,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+        }}
+      />
+
+      <Tabs.Screen
         name="message"
         options={{
           title: 'Message',
@@ -65,6 +78,7 @@ export default function TabLayout() {
         name="account"
         options={{
           title: 'Account',
+          headerShown: false
         }}
       />
     </Tabs>
