@@ -5,7 +5,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase, getProfile, updateProfile, uploadAvatar, deleteAvatar, Profile } from '../lib/supabase';
 import "../global.css";
 
-// --- Komponen Dialog Kustom dengan NativeWind ---
 interface CustomAlertDialogProps {
     visible: boolean;
     title: string;
@@ -58,7 +57,6 @@ const CustomAlertDialog = ({ visible, title, message, onClose, actions, children
 };
 
 
-// --- Komponen Input & GenderSelector dengan NativeWind ---
 const Input = ({ label, value, onChangeText, placeholder, editable = true, keyboardType, hint }: any) => (
     <View>
         <Text className="text-gray-700 font-medium mb-2">{label}</Text>
@@ -98,7 +96,6 @@ const GenderSelector = ({ selectedGender, onSelect }: { selectedGender: string, 
 );
 
 
-// --- Komponen Utama EditProfile ---
 export default function EditProfile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -190,7 +187,6 @@ export default function EditProfile() {
                 contact: contact.trim() || null,
             };
 
-            // Skenario 1: Pengguna memilih gambar baru
             if (imageBase64 && imageName) {
                 if (profile?.avatar_url) {
                     await deleteAvatar(profile.avatar_url);
@@ -198,7 +194,6 @@ export default function EditProfile() {
                 const newAvatarUrl = await uploadAvatar(userId, imageBase64, imageName);
                 updates.avatar_url = newAvatarUrl;
             } 
-            // Skenario 2: Pengguna menghapus gambar yang ada
             else if (!avatarUrl && profile?.avatar_url) {
                 await deleteAvatar(profile.avatar_url);
                 updates.avatar_url = null;

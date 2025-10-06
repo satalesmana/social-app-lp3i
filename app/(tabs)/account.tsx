@@ -154,7 +154,6 @@ export default function AccountPage(){
                 </View>
             </View>
 
-            {/* Action Buttons */}
             <View className="mx-5 mt-5 mb-8">
                 <Pressable 
                     onPress={onEditProfile}

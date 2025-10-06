@@ -161,7 +161,6 @@ export default function MessagePage() {
             );
         }
 
-        // --- LOGIKA UNTUK MOBILE DIPERBAIKI DI SINI ---
         return (
             <Swipeable
                 ref={(ref) => (swipeableRefs.current[item.id] = ref)}
