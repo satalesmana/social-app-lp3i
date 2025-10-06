@@ -76,9 +76,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/saved")}
+              style={{ marginRight: 12 }}
+            >
+              <Ionicons name="bookmark-outline" size={24} color="#2563eb" />
+            </TouchableOpacity>
+          )
         }}
       />
       <Tabs.Screen
