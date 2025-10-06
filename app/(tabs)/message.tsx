@@ -1,8 +1,10 @@
-import React from 'react'
-import { SafeAreaView,Platform, KeyboardAvoidingView, View, Text, FlatList, TextInput, Button } from 'react-native'
-import { Session } from '@supabase/supabase-js'
+import React from 'react';
+import { SafeAreaView, Platform, KeyboardAvoidingView, View, Text, FlatList, TextInput, Button, TouchableOpacity, Animated, Alert } from 'react-native';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from "../../lib/supabase";
 import dayjs from 'dayjs';
+import { Ionicons } from '@expo/vector-icons';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 
 type Message = {
     id: number;
@@ -10,19 +12,43 @@ type Message = {
     message: string;
     email: string;
     created_at: string;
+    reply_to: number | null;
+    original_message?: {
+        message: string;
+        email: string;
+    } | null;
 };
 
-export default function MessagePage(){
-    const [session, setSession] = React.useState<Session | null>(null)
-    const [input, setInput] = React.useState("")
-    const [messages, setMessage] = React.useState<Message[]>([]);
+// Komponen untuk Aksi Swipe (hanya untuk mobile)
+const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>, onPress: () => void) => {
+    const trans = dragX.interpolate({
+        inputRange: [-80, 0],
+        outputRange: [0, 80],
+        extrapolate: 'clamp',
+    });
+    return (
+        <TouchableOpacity onPress={onPress}>
+            <Animated.View style={{ transform: [{ translateX: trans }] }} className="flex-1 w-20 items-center justify-center">
+                <Ionicons name="arrow-undo" size={24} color="#34d399" />
+            </Animated.View>
+        </TouchableOpacity>
+    );
+};
+
+
+export default function MessagePage() {
+    const [session, setSession] = React.useState<Session | null>(null);
+    const [input, setInput] = React.useState("");
+    const [messages, setMessages] = React.useState<Message[]>([]);
+    const [replyingTo, setReplyingTo] = React.useState<Message | null>(null);
+    const [hoveredMessageId, setHoveredMessageId] = React.useState<number | null>(null);
+    const swipeableRefs = React.useRef<{ [key: number]: Swipeable | null }>({});
+
 
     React.useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session)
-        }).catch((error) => {
-            console.error("Error getting session:", error)
-        })
+            setSession(session);
+        });
 
         fetchMessages();
 
@@ -31,24 +57,10 @@ export default function MessagePage(){
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "message" },
-                (payload) => {
-                    setMessage((prev) => {
-                        if (payload.eventType === "INSERT") {
-                            // Add new message to the top
-                            return [payload.new as Message, ...prev];
-                        }
-                        if (payload.eventType === "UPDATE") {
-                            // Update the message in the list
-                            return prev.map((msg) =>
-                                msg.id === payload.new.id ? payload.new as Message : msg
-                            );
-                        }
-                        if (payload.eventType === "DELETE") {
-                            // Remove the deleted message
-                            return prev.filter((msg) => msg.id !== payload.old.id);
-                        }
-                        return prev;
-                    });
+                () => {
+                    // Cukup panggil fetchMessages untuk menyinkronkan data,
+                    // karena kita perlu mengambil data balasan juga.
+                    fetchMessages();
                 }
             )
             .subscribe();
@@ -56,85 +68,180 @@ export default function MessagePage(){
         return () => {
             supabase.removeChannel(channel);
         };
-     },[]);
+    }, []);
 
     async function fetchMessages() {
-        const { data } = await supabase
-            .schema('public')
+        const { data: messagesData, error } = await supabase
             .from("message")
             .select("*")
             .order("created_at", { ascending: false })
             .limit(50);
-        setMessage(data);
+        
+        if (error || !messagesData) {
+            console.error("Fetch Error:", error);
+            return;
+        };
+
+        const repliedMessageIds = new Set<number>();
+        messagesData.forEach(msg => {
+            if (msg.reply_to) repliedMessageIds.add(msg.reply_to);
+        });
+
+        let originalMessages: { [id: number]: Message } = {};
+        if (repliedMessageIds.size > 0) {
+            const { data: originalData } = await supabase
+                .from("message")
+                .select("id, message, email")
+                .in("id", Array.from(repliedMessageIds));
+
+            if (originalData) {
+                originalData.forEach(msg => {
+                    originalMessages[msg.id] = msg as Message;
+                });
+            }
+        }
+
+        const populatedMessages = messagesData.map(msg => ({
+            ...msg,
+            original_message: msg.reply_to ? originalMessages[msg.reply_to] : null
+        }));
+
+        setMessages(populatedMessages as Message[]);
     }
 
     async function sendMessage() {
-        if (!input.trim()) return;
-
-        const data = { 
-            user_id: session?.user.id, 
+        if (!input.trim() || !session) return;
+        const data = {
+            user_id: session.user.id,
             message: input,
-            email: session?.user.email
-        }
+            email: session.user.email,
+            reply_to: replyingTo ? replyingTo.id : null,
+        };
 
-        const { error } =  await supabase
-            .schema('public')
-            .from("message")
-            .insert(data)
+        const { error } = await supabase.from("message").insert(data);
+
+        if (error) {
+            console.error("Error sending message:", error);
+            Alert.alert("Gagal Mengirim Pesan", "Pastikan Anda telah mengaktifkan RLS Policy di Supabase. " + error.message);
+            return;
+        }
 
         setInput("");
-        if(error){
-            console.error("Error sending message:", error);
-        }
+        setReplyingTo(null);
     }
 
-    const renderMessage = ({ item }:any) => {
+    const handleReply = (message: Message) => {
+        setReplyingTo(message);
+        if (Platform.OS !== 'web') {
+            swipeableRefs.current[message.id]?.close();
+        }
+    };
+
+    const cancelReply = () => setReplyingTo(null);
+
+    const renderMessage = ({ item }: { item: Message }) => {
         const isMe = item.user_id === session?.user.id;
-        return (
+
+        const MessageBubble = (
             <View
                 style={{
-                    alignSelf: isMe ? "flex-end" : "flex-start",
                     backgroundColor: isMe ? "#DCF8C6" : "#ECECEC",
-                    marginVertical: 4,
                     padding: 10,
                     borderRadius: 12,
                     maxWidth: "75%",
                 }}
             >
-                <Text className="text-[14px]">{item.email}</Text>
+                {item.original_message && (
+                    <View className="bg-gray-200/60 p-2 rounded-lg mb-2 border-l-2 border-green-500">
+                        <Text className="text-[12px] font-bold text-green-600">{item.original_message.email}</Text>
+                        <Text className="text-[14px] text-gray-600" numberOfLines={2}>{item.original_message.message}</Text>
+                    </View>
+                )}
+                <Text className="text-[14px] font-bold">{item.email}</Text>
                 <Text className="text-[16px]">{item.message}</Text>
                 <Text className="text-[10px] text-neutral-500 mt-1 text-right">
                     {dayjs(item.created_at).format("HH:mm")}
                 </Text>
             </View>
         );
+
+        if (Platform.OS === 'web') {
+            return (
+                <View
+                    // @ts-ignore: onMouseEnter/onMouseLeave ada di React Native Web
+                    onMouseEnter={() => setHoveredMessageId(item.id)}
+                    onMouseLeave={() => setHoveredMessageId(null)}
+                    className={`my-1 flex-row items-center ${isMe ? 'justify-end' : 'justify-start'}`}
+                >
+                    {!isMe && hoveredMessageId === item.id && (
+                         <TouchableOpacity onPress={() => handleReply(item)} className="p-2 mr-1">
+                            <Ionicons name="arrow-undo" size={18} color="gray" />
+                        </TouchableOpacity>
+                    )}
+                   
+                    {MessageBubble}
+
+                    {isMe && hoveredMessageId === item.id && (
+                         <TouchableOpacity onPress={() => handleReply(item)} className="p-2 ml-1">
+                            <Ionicons name="arrow-undo" size={18} color="gray" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+            );
+        }
+
+        return (
+            <Swipeable
+                ref={(ref) => (swipeableRefs.current[item.id] = ref)}
+                renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, () => handleReply(item))}
+                overshootRight={false}
+            >
+                <View style={{ alignSelf: isMe ? 'flex-end' : 'flex-start' }}>
+                    {MessageBubble}
+                </View>
+            </Swipeable>
+        );
     };
 
-    return(
-         <KeyboardAvoidingView
-            className="flex-1"
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 24}
-        >
-            <SafeAreaView style={{ flex: 1, padding: 16 }}>
-                <FlatList
-                    data={messages}
-                    keyExtractor={(item) => item.id.toString()}
-                    inverted
-                    renderItem={renderMessage}
-                    contentContainerStyle={{ paddingVertical: 10 }}
-                />
-
-            <View className="flex-row items-center border-t border-neutral-200 py-2">
-                <TextInput
-                    value={input}
-                    onChangeText={setInput}
-                    placeholder="Type a message..."
-                    className="flex-1 border border-neutral-300 rounded-2xl px-3 py-2 mr-2"
-                />
-                <Button title="Send" onPress={sendMessage} />
-            </View>
-            </SafeAreaView>
-        </KeyboardAvoidingView>
-    )
+    return (
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <KeyboardAvoidingView
+                className="flex-1"
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+            >
+                <SafeAreaView className="flex-1 p-4">
+                    <FlatList
+                        data={messages}
+                        keyExtractor={(item) => item.id.toString()}
+                        inverted
+                        renderItem={renderMessage}
+                        contentContainerStyle={{ paddingVertical: 10 }}
+                    />
+                    <View className="border-t border-neutral-200 pt-2">
+                        {replyingTo && (
+                            <View className="bg-gray-100 p-2 rounded-lg mb-2 flex-row justify-between items-center">
+                                <View className="flex-1">
+                                    <Text className="text-xs font-bold">Replying to {replyingTo.email}</Text>
+                                    <Text className="text-sm text-gray-600" numberOfLines={1}>{replyingTo.message}</Text>
+                                </View>
+                                <TouchableOpacity onPress={cancelReply}>
+                                    <Ionicons name="close-circle" size={22} color="gray" />
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                        <View className="flex-row items-center">
+                            <TextInput
+                                value={input}
+                                onChangeText={setInput}
+                                placeholder="Type a message..."
+                                className="flex-1 border border-neutral-300 rounded-2xl px-3 py-2 mr-2"
+                            />
+                            <Button title="Send" onPress={sendMessage} disabled={!input.trim()} />
+                        </View>
+                    </View>
+                </SafeAreaView>
+            </KeyboardAvoidingView>
+        </GestureHandlerRootView>
+    );
 }

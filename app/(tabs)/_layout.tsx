@@ -1,4 +1,5 @@
 import { Tabs, Stack, router } from 'expo-router';
+import 'react-native-gesture-handler';
 import { View, Text, Pressable, TouchableOpacity, useWindowDimensions } from "react-native";
 import "../../global.css"
 
