@@ -1,35 +1,52 @@
-import { useEffect, useState } from "react";
-import { View, Text, Image, ScrollView, Pressable, Alert, Platform, ActivityIndicator } from "react-native";
-import { supabase } from "../../lib/supabase";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome5, Feather } from "@expo/vector-icons";
+import { View, Text, Image, ScrollView, TouchableOpacity, Pressable, ActivityIndicator, RefreshControl } from "react-native";
+import { useState, useEffect, useCallback } from "react"
+import { supabase, getProfile, Profile } from '../../lib/supabase';
+import { router, useFocusEffect } from "expo-router"
+import "../../global.css"
 
-export default function AccountPage() {
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function AccountPage(){
+    const [loading, setLoading] = useState(true)
+    const [refreshing, setRefreshing] = useState(false)
+    const [profile, setProfile] = useState<Profile | null>(null)
+    const [userId, setUserId] = useState<string | null>(null)
 
-  // Ambil data user dari Supabase
-  const fetchUserData = async () => {
-    setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
+    // useEffect(() => {
+    //     loadProfile()
+    // }, [])
 
-    if (userData?.user) {
-      setUserEmail(userData.user.email || null);
+    useFocusEffect(
+      useCallback(() => {
+        loadProfile()
+      }, [])
+    )
 
-      // cek avatar dari tabel profiles (kalau ada)
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("avatar_url")
-        .eq("id", userData.user.id)
-        .single();
 
-      if (profile?.avatar_url) {
-        setAvatarUrl(profile.avatar_url);
-      }
+    const loadProfile = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            
+            if (!session?.user) {
+                router.replace("login")
+                return
+            }
+
+            setUserId(session.user.id)
+            const profileData = await getProfile(session.user.id)
+            setProfile(profileData)
+        } catch (error) {
+            console.error("Error loading profile:", error)
+        } finally {
+            setLoading(false)
+            setRefreshing(false)
+        }
     }
-    setLoading(false);
-  };
+
+    const onRefresh = useCallback(() => {
+        setRefreshing(true)
+        loadProfile()
+    }, [])
+
 
   useEffect(() => {
     fetchUserData();
@@ -74,93 +91,121 @@ export default function AccountPage() {
     }
   };
 
-  const onEditProfile = () => {
-    router.push("edit-profile");
-  };
+    const onEditProfile = () => {
+        router.push("edit-profile")
+    }
 
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="blue" />
-        <Text>Memuat data akun...</Text>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView className="bg-white flex-1">
-      {/* Cover */}
-      <View className="w-full h-32 bg-sky-500" />
-
-      {/* Profile Section */}
-      <View className="px-4 -mt-12">
-        <Image
-          source={{
-            uri: avatarUrl
-              ? avatarUrl
-              : "https://i.pravatar.cc/150?img=5", // fallback avatar
-          }}
-          className="w-24 h-24 rounded-full border-4 border-white"
-        />
-
-        {/* Email User */}
-        <Text className="text-lg font-bold mt-2">
-          {userEmail ? `Selamat datang ${userEmail}` : "Selamat datang!"}
-        </Text>
-        <Text className="text-gray-500">@username_demo</Text>
-
-        <Text className="mt-2 text-sm text-gray-700">
-          Just a simple bio here ✨ | Developer | Coffee Lover ☕
-        </Text>
-
-        {/* Divider */}
-        <View className="border-b border-gray-200 mt-4" />
-
-        {/* Posts Tabs */}
-        <View className="flex-row justify-around py-3">
-          <Text className="font-semibold text-green-600">Posts</Text>
-          <Text className="text-gray-500">Replies</Text>
-          <Text className="text-gray-500">Media</Text>
-          <Text className="text-gray-500">Likes</Text>
-        </View>
-
-        {/* Post List Example */}
-        <View className="border-t border-gray-200">
-          {[1, 2, 3].map((item) => (
-            <View key={item} className="flex-row px-4 py-3 border-b border-gray-200">
-              <Image
-                source={{ uri: "https://i.pravatar.cc/100?img=12" }}
-                className="w-10 h-10 rounded-full mr-3"
-              />
-              <View className="flex-1">
-                <Text className="font-semibold">Bill</Text>
-                <Text className="text-gray-700">
-                  Ini contoh postingan ke-{item} yang tampil di profil 🚀
-                </Text>
-              </View>
+    if (loading) {
+        return (
+            <View className="flex-1 items-center justify-center">
+                <ActivityIndicator size="large" color="#22c55e" />
             </View>
-          ))}
-        </View>
+        )
+    }
 
-        {/* Edit Profile & Logout */}
-        <View className="flex-row mt-4 space-x-3">
-          <Pressable
-            onPress={onEditProfile}
-            className="flex-1 py-2 rounded-2xl border border-gray-300 flex items-center justify-center"
-          >
-            <Ionicons name="create-outline" size={18} color="#555" />
-            <Text className="font-semibold text-gray-700 mt-1">Edit Profile</Text>
-          </Pressable>
+    return(
+        <ScrollView 
+            contentContainerStyle={{ flexGrow: 1 }}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+        >
+            {/* Header */}
+            <View className="bg-green-500 rounded-b-3xl pb-16 items-center">
+                {/* Profile Image */}
+                {profile?.avatar_url ? (
+                    <Image
+                        source={{ uri: profile.avatar_url }}
+                        className="w-24 h-24 rounded-full mt-6 border-4 border-white"
+                    />
+                ) : (
+                    <View className="w-24 h-24 rounded-full mt-6 border-4 border-white bg-white items-center justify-center">
+                        <Text className="text-5xl">👤</Text>
+                    </View>
+                )}
+                
+                <Text className="text-white text-xl font-semibold mt-3">
+                    {profile?.name || "No Name"}
+                </Text>
+                <Text className="text-white/90 text-sm mt-1">
+                    {profile?.email || "No Email"}
+                </Text>
+            </View>
 
-          <Pressable
-            onPress={onSignOut}
-            className="flex-1 py-2 rounded-2xl bg-[#911b03] flex items-center justify-center"
-          >
-            <Ionicons name="log-out-outline" size={18} color="white" />
-            <Text className="font-semibold text-white mt-1">Logout</Text>
-          </Pressable>
-        </View>
-      </View>
-    </ScrollView>
-  );
+            {/* Card Section */}
+            <View className="mx-5 -mt-10 bg-white rounded-2xl p-5 shadow-md">
+                {/* Quick Actions Row */}
+                <View className="flex-row justify-between mb-6">
+                    <TouchableOpacity className="items-center">
+                        <View className="bg-green-100 p-4 rounded-xl">
+                            <FontAwesome5 name="wallet" size={20} color="#22c55e" />
+                        </View>
+                        <Text className="text-xs mt-2">Payment</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity className="items-center">
+                        <View className="bg-green-100 p-4 rounded-xl">
+                            <Feather name="settings" size={20} color="#22c55e" />
+                        </View>
+                        <Text className="text-xs mt-2">Settings</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity className="items-center">
+                        <View className="bg-green-100 p-4 rounded-xl">
+                            <Feather name="bell" size={20} color="#22c55e" />
+                        </View>
+                        <Text className="text-xs mt-2">Notification</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Profile Info Section */}
+                <View className="space-y-4">
+                    <View className="flex-row justify-between py-3 border-b border-gray-100">
+                        <Text className="text-gray-500 font-medium">Name</Text>
+                        <Text className="text-gray-800 font-medium">
+                            {profile?.name || "-"}
+                        </Text>
+                    </View>
+
+                    <View className="flex-row justify-between py-3 border-b border-gray-100">
+                        <Text className="text-gray-500 font-medium">Email</Text>
+                        <Text className="text-gray-800 text-right flex-1 ml-4">
+                            {profile?.email || "-"}
+                        </Text>
+                    </View>
+
+                    <View className="flex-row justify-between py-3 border-b border-gray-100">
+                        <Text className="text-gray-500 font-medium">Gender</Text>
+                        <Text className="text-gray-800 font-medium">
+                            {profile?.gender || "-"}
+                        </Text>
+                    </View>
+
+                    <View className="flex-row justify-between py-3">
+                        <Text className="text-gray-500 font-medium">Contact</Text>
+                        <Text className="text-gray-800 font-medium">
+                            {profile?.contact || "-"}
+                        </Text>
+                    </View>
+                </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View className="mx-5 mt-5 mb-8">
+                <Pressable 
+                    onPress={onEditProfile}
+                    className="py-4 flex items-center justify-center rounded-2xl bg-green-500 shadow-sm"
+                >
+                    <Text className="text-white font-semibold text-base">Edit Profile</Text>
+                </Pressable>
+
+                <Pressable 
+                    onPress={onSignOut}
+                    className="py-4 mt-4 flex items-center justify-center rounded-2xl bg-red-600 shadow-sm"
+                >
+                    <Text className="text-white font-semibold text-base">Logout</Text>
+                </Pressable>
+            </View>
+        </ScrollView>
+    )
 }

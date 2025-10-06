@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import { StyleSheet, View, AppState, Button, TextInput } from "react-native";
-import { supabase } from "../lib/supabase";
+import React, { useState } from 'react';
+import { StyleSheet, View, AppState, Button, TextInput } from 'react-native';
+// Pastikan updateProfile di-import dari lib/supabase
+import { supabase, updateProfile } from '../lib/supabase'; 
 import { AlertDialog } from "./global/Alert";
 
-// Auto refresh session Supabase
-AppState.addEventListener("change", (state) => {
-  if (state === "active") {
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') {
     supabase.auth.startAutoRefresh();
   } else {
     supabase.auth.stopAutoRefresh();
@@ -25,17 +25,19 @@ export default function Auth() {
     try {
       setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: email,
+        password: password,
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
     } catch (err: any) {
-      const msg = err?.message || "Message undefined";
+      const msg = err?.message ? err.message : "An unknown error occurred";
       setAlertTitle("Error");
       setErrMsg(msg);
       setVisible(true);
-      console.log("err", err);
+      console.log('err', err);
     } finally {
       setLoading(false);
     }
@@ -45,27 +47,34 @@ export default function Auth() {
   async function signUpWithEmail() {
     try {
       setLoading(true);
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.signUp({
-        email,
-        password,
+      // Kita ambil 'user' dan 'session' dari dalam 'data'
+      const { data: { user, session }, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Tarik data user sign up ke db kedua
+      if (user) {
+        await updateProfile(user.id, {
+          email: user.email, // Mencantumkan email ke DB kedua
+        });
+      }
 
       if (!session) {
         setAlertTitle("Info");
-        setErrMsg("Please check your inbox for email verification!");
+        setErrMsg('Please check your inbox for email verification!');
         setVisible(true);
       }
     } catch (err: any) {
-      const msg = err?.message || "Message undefined";
+      const msg = err?.message ? err.message : "An unknown error occurred";
       setAlertTitle("Error");
       setErrMsg(msg);
       setVisible(true);
-      console.log("err", err);
+      console.log('err', err);
     } finally {
       setLoading(false);
     }
@@ -79,8 +88,25 @@ export default function Auth() {
           onChangeText={setEmail}
           value={email}
           placeholder="email@address.com"
-          autoCapitalize="none"
+          autoCapitalize={'none'}
+          style={styles.input} // Tambahkan style agar terlihat
         />
+      </View>
+      <View style={styles.verticallySpaced}>
+        <TextInput
+          onChangeText={(text) => setPassword(text)}
+          value={password}
+          secureTextEntry={true}
+          placeholder="Password"
+          autoCapitalize={'none'}
+          style={styles.input} // Tambahkan style agar terlihat
+        />
+      </View>
+      <View style={[styles.verticallySpaced, styles.mt20]}>
+        <Button title="Sign in" disabled={loading} onPress={() => signInWithEmail()} />
+      </View>
+      <View style={styles.verticallySpaced}>
+        <Button title="Sign up" disabled={loading} onPress={() => signUpWithEmail()} />
       </View>
 
       {/* Input Password */}
@@ -136,4 +162,10 @@ const styles = StyleSheet.create({
   mt20: {
     marginTop: 20,
   },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 5,
+  }
 });
