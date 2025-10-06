@@ -45,7 +45,6 @@ export default function Auth() {
   async function signUpWithEmail() {
     try {
       setLoading(true);
-      // --- PERBAIKAN DI SINI ---
       // Kita ambil 'user' dan 'session' dari dalam 'data'
       const { data: { user, session }, error } = await supabase.auth.signUp({
         email: email,
@@ -56,13 +55,12 @@ export default function Auth() {
         throw new Error(error.message);
       }
 
-      // Jika pendaftaran berhasil dan objek 'user' ada, buat profil di DB kedua
+      // Tarik data user sign up ke db kedua
       if (user) {
         await updateProfile(user.id, {
           email: user.email, // Mencantumkan email ke DB kedua
         });
       }
-      // --------------------------
 
       if (!session) {
         setAlertTitle("Info");
@@ -131,7 +129,7 @@ const styles = StyleSheet.create({
   mt20: {
     marginTop: 20,
   },
-  input: { // Style tambahan agar input terlihat lebih baik
+  input: {
     borderWidth: 1,
     borderColor: '#ccc',
     padding: 10,

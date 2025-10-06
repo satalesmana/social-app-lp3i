@@ -78,7 +78,7 @@ const GenderSelector = ({ selectedGender, onSelect }: { selectedGender: string, 
     <View>
         <Text className="text-gray-700 font-medium mb-2">Gender</Text>
         <View className="flex-row space-x-3">
-            {['Male', 'Female', 'Other'].map((g) => (
+            {['Male', 'Female'].map((g) => (
                 <Pressable
                     key={g}
                     onPress={() => onSelect(g)}
