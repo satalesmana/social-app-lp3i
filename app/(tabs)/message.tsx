@@ -1,5 +1,17 @@
 import React from 'react';
-import { SafeAreaView, Platform, KeyboardAvoidingView, View, Text, FlatList, TextInput, Button, TouchableOpacity, Animated, Alert } from 'react-native';
+import {
+    SafeAreaView,
+    Platform,
+    KeyboardAvoidingView,
+    View,
+    Text,
+    FlatList,
+    TextInput,
+    Button,
+    TouchableOpacity,
+    Animated,
+    Alert
+} from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from "../../lib/supabase";
 import dayjs from 'dayjs';
@@ -19,22 +31,21 @@ type Message = {
     } | null;
 };
 
-// Komponen untuk Aksi Swipe (hanya untuk mobile)
-const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>, onPress: () => void) => {
-    const trans = dragX.interpolate({
-        inputRange: [-80, 0],
-        outputRange: [0, 80],
+// Komponen Aksi yang bisa digunakan untuk geser kiri atau kanan
+const renderActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>, onPress: () => void) => {
+    const scale = dragX.interpolate({
+        inputRange: [-80, 0, 80],
+        outputRange: [1, 0, 1],
         extrapolate: 'clamp',
     });
     return (
-        <TouchableOpacity onPress={onPress}>
-            <Animated.View style={{ transform: [{ translateX: trans }] }} className="flex-1 w-20 items-center justify-center">
+        <TouchableOpacity onPress={onPress} style={{ justifyContent: 'center', alignItems: 'center', width: 80 }}>
+            <Animated.View style={{ transform: [{ scale }] }}>
                 <Ionicons name="arrow-undo" size={24} color="#34d399" />
             </Animated.View>
         </TouchableOpacity>
     );
 };
-
 
 export default function MessagePage() {
     const [session, setSession] = React.useState<Session | null>(null);
@@ -43,7 +54,6 @@ export default function MessagePage() {
     const [replyingTo, setReplyingTo] = React.useState<Message | null>(null);
     const [hoveredMessageId, setHoveredMessageId] = React.useState<number | null>(null);
     const swipeableRefs = React.useRef<{ [key: number]: Swipeable | null }>({});
-
 
     React.useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -57,11 +67,7 @@ export default function MessagePage() {
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "message" },
-                () => {
-                    // Cukup panggil fetchMessages untuk menyinkronkan data,
-                    // karena kita perlu mengambil data balasan juga.
-                    fetchMessages();
-                }
+                () => { fetchMessages(); }
             )
             .subscribe();
 
@@ -71,33 +77,17 @@ export default function MessagePage() {
     }, []);
 
     async function fetchMessages() {
-        const { data: messagesData, error } = await supabase
-            .from("message")
-            .select("*")
-            .order("created_at", { ascending: false })
-            .limit(50);
-        
-        if (error || !messagesData) {
-            console.error("Fetch Error:", error);
-            return;
-        };
+        const { data: messagesData, error } = await supabase.from("message").select("*").order("created_at", { ascending: false }).limit(50);
+        if (error || !messagesData) return;
 
         const repliedMessageIds = new Set<number>();
-        messagesData.forEach(msg => {
-            if (msg.reply_to) repliedMessageIds.add(msg.reply_to);
-        });
+        messagesData.forEach(msg => { if (msg.reply_to) repliedMessageIds.add(msg.reply_to); });
 
         let originalMessages: { [id: number]: Message } = {};
         if (repliedMessageIds.size > 0) {
-            const { data: originalData } = await supabase
-                .from("message")
-                .select("id, message, email")
-                .in("id", Array.from(repliedMessageIds));
-
+            const { data: originalData } = await supabase.from("message").select("id, message, email").in("id", Array.from(repliedMessageIds));
             if (originalData) {
-                originalData.forEach(msg => {
-                    originalMessages[msg.id] = msg as Message;
-                });
+                originalData.forEach(msg => { originalMessages[msg.id] = msg as Message; });
             }
         }
 
@@ -105,36 +95,30 @@ export default function MessagePage() {
             ...msg,
             original_message: msg.reply_to ? originalMessages[msg.reply_to] : null
         }));
-
         setMessages(populatedMessages as Message[]);
     }
 
     async function sendMessage() {
         if (!input.trim() || !session) return;
-        const data = {
+        const data: { user_id: string; message: string; email: string | undefined; reply_to?: number | null } = {
             user_id: session.user.id,
             message: input,
             email: session.user.email,
-            reply_to: replyingTo ? replyingTo.id : null,
         };
+        if (replyingTo) data.reply_to = replyingTo.id;
 
-        const { error } = await supabase.from("message").insert(data);
-
+        const { error } = await supabase.schema('public').from("message").insert(data);
         if (error) {
-            console.error("Error sending message:", error);
-            Alert.alert("Gagal Mengirim Pesan", "Pastikan Anda telah mengaktifkan RLS Policy di Supabase. " + error.message);
+            Alert.alert("Gagal Mengirim Pesan", error.message);
             return;
         }
-
         setInput("");
         setReplyingTo(null);
     }
 
     const handleReply = (message: Message) => {
         setReplyingTo(message);
-        if (Platform.OS !== 'web') {
-            swipeableRefs.current[message.id]?.close();
-        }
+        swipeableRefs.current[message.id]?.close();
     };
 
     const cancelReply = () => setReplyingTo(null);
@@ -143,14 +127,7 @@ export default function MessagePage() {
         const isMe = item.user_id === session?.user.id;
 
         const MessageBubble = (
-            <View
-                style={{
-                    backgroundColor: isMe ? "#DCF8C6" : "#ECECEC",
-                    padding: 10,
-                    borderRadius: 12,
-                    maxWidth: "75%",
-                }}
-            >
+            <View style={{ backgroundColor: isMe ? "#DCF8C6" : "#ECECEC", padding: 10, borderRadius: 12, maxWidth: "75%" }}>
                 {item.original_message && (
                     <View className="bg-gray-200/60 p-2 rounded-lg mb-2 border-l-2 border-green-500">
                         <Text className="text-[12px] font-bold text-green-600">{item.original_message.email}</Text>
@@ -159,28 +136,22 @@ export default function MessagePage() {
                 )}
                 <Text className="text-[14px] font-bold">{item.email}</Text>
                 <Text className="text-[16px]">{item.message}</Text>
-                <Text className="text-[10px] text-neutral-500 mt-1 text-right">
-                    {dayjs(item.created_at).format("HH:mm")}
-                </Text>
+                <Text className="text-[10px] text-neutral-500 mt-1 text-right">{dayjs(item.created_at).format("HH:mm")}</Text>
             </View>
         );
 
         if (Platform.OS === 'web') {
             return (
                 <View
-                    // @ts-ignore: onMouseEnter/onMouseLeave ada di React Native Web
                     onMouseEnter={() => setHoveredMessageId(item.id)}
                     onMouseLeave={() => setHoveredMessageId(null)}
-                    className={`my-1 flex-row items-center ${isMe ? 'justify-end' : 'justify-start'}`}
-                >
+                    className={`my-1 flex-row items-center ${isMe ? 'justify-end' : 'justify-start'}`}>
                     {!isMe && hoveredMessageId === item.id && (
                          <TouchableOpacity onPress={() => handleReply(item)} className="p-2 mr-1">
                             <Ionicons name="arrow-undo" size={18} color="gray" />
                         </TouchableOpacity>
                     )}
-                   
                     {MessageBubble}
-
                     {isMe && hoveredMessageId === item.id && (
                          <TouchableOpacity onPress={() => handleReply(item)} className="p-2 ml-1">
                             <Ionicons name="arrow-undo" size={18} color="gray" />
@@ -190,15 +161,18 @@ export default function MessagePage() {
             );
         }
 
+        // --- LOGIKA UNTUK MOBILE DIPERBAIKI DI SINI ---
         return (
             <Swipeable
                 ref={(ref) => (swipeableRefs.current[item.id] = ref)}
-                renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, () => handleReply(item))}
-                overshootRight={false}
+                // Langsung trigger reply saat swipe selesai
+                onSwipeableOpen={() => handleReply(item)}
+                // Gunakan renderLeft atau renderRight berdasarkan posisi pesan
+                renderLeftActions={!isMe ? (progress, dragX) => renderActions(progress, dragX, () => handleReply(item)) : undefined}
+                renderRightActions={isMe ? (progress, dragX) => renderActions(progress, dragX, () => handleReply(item)) : undefined}
+                overshootFriction={8}
             >
-                <View style={{ alignSelf: isMe ? 'flex-end' : 'flex-start' }}>
-                    {MessageBubble}
-                </View>
+                <View style={{ alignSelf: isMe ? 'flex-end' : 'flex-start' }}>{MessageBubble}</View>
             </Swipeable>
         );
     };
@@ -208,8 +182,7 @@ export default function MessagePage() {
             <KeyboardAvoidingView
                 className="flex-1"
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-            >
+                keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}>
                 <SafeAreaView className="flex-1 p-4">
                     <FlatList
                         data={messages}
