@@ -14,7 +14,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 export const uploadImage = async (base64: string, fileName: string) => {
   const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
   const { data, error } = await supabase.storage
-    .from('SOCIAL-APP-LP3I') // ganti dengan nama bucket kamu
+    .from('SOCIAL-APP-LP3I')
     .upload(`${fileName}`, binary, {
       cacheControl: '3600',
       upsert: false,
@@ -30,7 +30,7 @@ export const uploadImage = async (base64: string, fileName: string) => {
   return data
 }
 
-// ✅ Fitur repost (integrasi Supabase)
+
 export const addRepost = async (post_id: string, user_id: string) => {
   try {
     const { data, error } = await supabase
