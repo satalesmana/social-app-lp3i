@@ -65,6 +65,7 @@ export default function TabLayout() {
         name="account"
         options={{
           title: 'Account',
+          headerShown: false
         }}
       />
     </Tabs>
