@@ -1,5 +1,5 @@
 import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { Share } from "react-native";
 import "../../global.css";
 
@@ -98,9 +98,14 @@ export default function HomeScreen() {
               <Ionicons name="heart-outline" size={20} color="gray" />
               <Text className="text-gray-500">{post.likes}</Text>
             </View>
-            {/* Tombol Share */}
-            <TouchableOpacity onPress={() => onShare(post)}>
-              <Feather name="share" size={20} color="gray" />
+
+            {/* Tombol Share baru */}
+            <TouchableOpacity
+              onPress={() => onShare(post)}
+              className="items-center active:opacity-70"
+            >
+              <Ionicons name="share-social-outline" size={22} color="#1d9bf0" />
+              <Text className="text-xs text-[#1d9bf0] mt-1">Share</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -9,7 +9,7 @@ export default function SplashScreen(){
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session)
+          setSession(session)
         }).catch((error) => {
             console.error("Error getting session:", error)
             router.replace("login")
