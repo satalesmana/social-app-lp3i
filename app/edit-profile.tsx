@@ -1,9 +1,9 @@
 import { View, Text, Pressable, Image, Platform, Alert } from "react-native";
 import { useState } from "react";
 import * as ImagePicker from "expo-image-picker";
-import { uploadImage } from "../lib/supabase";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { supabase } from "../lib/supabase";
 
 export default function EditAccount() {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function EditAccount() {
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Pilih gambar dari galeri
+  // 🔹 Pilih gambar dari galeri
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -25,12 +25,12 @@ export default function EditAccount() {
     if (!result.canceled) {
       const asset = result.assets[0];
       setImage(asset.base64 as string);
-      setImageName(asset.fileName || `image_${Date.now()}.jpg`);
+      setImageName(asset.fileName || `profile_${Date.now()}.jpg`);
       setPreviewUri(asset.uri);
     }
   };
 
-  // Upload gambar ke Supabase
+  // 🔹 Upload gambar ke bucket `social-apps`
   const onSave = async () => {
     if (!image || !imageName) {
       Platform.OS === "web"
@@ -41,25 +41,52 @@ export default function EditAccount() {
 
     try {
       setLoading(true);
-      const uploadResult = await uploadImage(image, imageName);
-      setLoading(false);
 
-      if (uploadResult) {
-        Platform.OS === "web"
-          ? window.alert("Foto berhasil diubah!")
-          : Alert.alert("Sukses", "Foto berhasil diubah!");
-        router.replace("/(tabs)/account");
-      } else {
+      // Ubah base64 → binary (Uint8Array)
+      const binary = Uint8Array.from(atob(image), (c) => c.charCodeAt(0));
+
+      // Upload ke Supabase Storage (bucket: social-apps)
+      const { data, error } = await supabase.storage
+        .from("social-apps")
+        .upload(imageName, binary, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: "image/jpeg",
+        });
+
+      if (error) {
+        console.error("Upload error:", error);
         Platform.OS === "web"
           ? window.alert("Gagal mengupload gambar.")
           : Alert.alert("Error", "Gagal mengupload gambar.");
+        return;
       }
+
+      // Ambil URL publik
+      const { data: publicUrlData } = supabase.storage
+        .from("social-apps")
+        .getPublicUrl(imageName);
+
+      const imageUrl = publicUrlData.publicUrl;
+
+      // 🔹 Notifikasi sukses
+      if (Platform.OS === "web") {
+        window.alert("Foto berhasil diubah!");
+        router.replace("/(tabs)/account");
+      } else {
+        Alert.alert("Sukses", "Foto berhasil diubah!", [
+          { text: "OK", onPress: () => router.replace("/(tabs)/account") },
+        ]);
+      }
+
+      console.log("Image uploaded successfully:", imageUrl);
     } catch (err) {
       console.error("Upload error:", err);
-      setLoading(false);
       Platform.OS === "web"
         ? window.alert("Terjadi kesalahan saat upload.")
         : Alert.alert("Error", "Terjadi kesalahan saat upload.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,7 +95,7 @@ export default function EditAccount() {
       {/* Tombol pilih gambar */}
       <Pressable
         onPress={pickImage}
-        className="flex-row items-center justify-center bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 px-6 py-3 rounded-full shadow-lg"
+        className="flex-row items-center justify-center bg-purple-500 px-6 py-3 rounded-full shadow-lg"
         style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       >
         <Ionicons name="image-outline" size={20} color="white" style={{ marginRight: 8 }} />

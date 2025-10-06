@@ -2,7 +2,11 @@
 import React from "react";
 import { View, Text, Image, ScrollView, TextInput, TouchableOpacity, useWindowDimensions } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import "react-native-url-polyfill/auto";
+import { Buffer } from "buffer";
 import "./global.css"
+global.Buffer = Buffer;
+
 
 const posts = [
   {
