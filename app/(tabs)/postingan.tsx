@@ -1,28 +1,19 @@
 import React, { useState } from "react";
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  Image, 
-  Alert, 
-  ScrollView, 
-  Platform 
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import { supabase } from "../../lib/supabase";
-import { router } from "expo-router";
+import { supabase, uploadPostImage } from "../../lib/supabase";
 
 export default function Postingan() {
   const [content, setContent] = useState("");
   const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false); // 🔥 state loading
+  const [loading, setLoading] = useState(false);
 
+  // Fungsi pilih gambar dari galeri
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.7,
+      quality: 1,
     });
 
     if (!result.canceled) {
@@ -30,96 +21,104 @@ export default function Postingan() {
     }
   };
 
-  const uploadPost = async () => {
+  // Fungsi kirim postingan ke Supabase
+  const handlePost = async () => {
     try {
-      setLoading(true); // mulai loading
+      setLoading(true);
 
-      let imageUrl = null;
+      // Ambil session user aktif
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (image) {
-        const fileName = `post-${Date.now()}.jpg`;
-        const response = await fetch(image);
-        const blob = await response.blob();
-
-        const { error: uploadError } = await supabase.storage
-          .from("postingan")
-          .upload(fileName, blob, {
-            contentType: "image/jpeg",
-            upsert: true,
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data } = supabase.storage
-          .from("postingan")
-          .getPublicUrl(fileName);
-
-        imageUrl = data.publicUrl;
+      if (!session || !session.user?.email) {
+        Alert.alert("Error", "Kamu harus login terlebih dahulu!");
+        return;
       }
 
-      const { error: insertError } = await supabase.from("postingan").insert([
-        {
-          user_id: "292bf5be-b3e3-4f21-a883-0581d8638ecf", // ganti pakai user login
-          email: "adiprimavoc123@gmail.com", // ganti pakai email login
-          content,
-          image_url: imageUrl,
-        },
+      const email = session.user.email;
+      let imageUrl = null;
+
+      // Upload gambar jika ada
+      if (image) {
+        const ext = image.split(".").pop()?.toLowerCase() || "jpg";
+        const fileName = `postingan_${Date.now()}.${ext}`;
+        imageUrl = await uploadPostImage(image, fileName);
+
+        if (!imageUrl) {
+          Alert.alert("Error", "Gagal mengupload gambar.");
+          return;
+        }
+      }
+
+      // Insert data ke tabel postingan
+      const { error } = await supabase.from("postingan").insert([
+        { email, content, image_url: imageUrl },
       ]);
 
-      if (insertError) throw insertError;
+      if (error) throw error;
 
-      Alert.alert("Sukses", "Postingan berhasil diupload!");
+      Alert.alert("Sukses", "Postingan berhasil ditambahkan!");
       setContent("");
       setImage(null);
-
-      // arahkan balik ke _layout (Home)
-      router.replace("/");
-
     } catch (err: any) {
-      Alert.alert("Error", err.message);
+      console.error("Upload gagal:", err);
+      Alert.alert("Error", err.message || "Terjadi kesalahan saat posting.");
     } finally {
-      setLoading(false); // selesai loading
+      setLoading(false);
     }
   };
 
   return (
-    <ScrollView className="flex-1 p-4 bg-white">
-      <Text className="text-xl font-bold mb-4">Buat Postingan</Text>
-
+    <View style={{ flex: 1, padding: 16 }}>
       <TextInput
-        placeholder="Tulis sesuatu..."
+        placeholder="Apa yang kamu pikirkan?"
         value={content}
         onChangeText={setContent}
-        className="border border-gray-300 rounded-md p-2 mb-4"
-        multiline
+        style={{
+          borderWidth: 1,
+          borderColor: "#ccc",
+          padding: 10,
+          borderRadius: 8,
+          marginBottom: 10,
+        }}
       />
 
       {image && (
-        <Image source={{ uri: image }} style={{ width: "100%", height: 200, marginBottom: 10 }} />
+        <Image
+          source={{ uri: image }}
+          style={{
+            width: "100%",
+            height: 200,
+            marginBottom: 10,
+            borderRadius: 8,
+          }}
+        />
       )}
 
       <TouchableOpacity
         onPress={pickImage}
         style={{
-          backgroundColor: "#3498db",
           padding: 12,
+          backgroundColor: "#ddd",
           borderRadius: 8,
           marginBottom: 10,
         }}
       >
-        
-        <Text style={{ color: "#fff", textAlign: "center" }}>Pilih Gambar</Text>
+        <Text>Pilih Gambar</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        onPress={uploadPost}
+        onPress={handlePost}
         disabled={loading}
-        className={`py-3 px-4 rounded-md ${loading ? "bg-gray-400" : "bg-green-500"}`}
+        style={{
+          padding: 12,
+          backgroundColor: "blue",
+          borderRadius: 8,
+        }}
       >
-        <Text className="text-white text-center font-semibold">
-          {loading ? "Mengupload..." : "Upload"}
+        <Text style={{ color: "white", textAlign: "center" }}>
+          {loading ? "Mengirim..." : "Posting"}
         </Text>
       </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 }

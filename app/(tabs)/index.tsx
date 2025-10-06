@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, Image, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Image, ActivityIndicator, RefreshControl } from "react-native";
 import { supabase } from "../../lib/supabase";
 
 export default function HomePage() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Fungsi ambil data postingan
   const fetchPosts = async () => {
-    setLoading(true);
+    if (!refreshing) setLoading(true);
+
     const { data, error } = await supabase
       .from("postingan")
       .select("*")
@@ -18,22 +21,21 @@ export default function HomePage() {
     } else {
       setPosts(data || []);
     }
+
     setLoading(false);
+    setRefreshing(false);
   };
 
   useEffect(() => {
     fetchPosts();
 
-    // realtime listener 🔥
+    // 🔥 Realtime listener untuk update otomatis
     const channel = supabase
       .channel("postingan-changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "postingan" },
-        (payload) => {
-          console.log("Realtime change:", payload);
-          fetchPosts(); // refresh otomatis
-        }
+        () => fetchPosts()
       )
       .subscribe();
 
@@ -42,9 +44,9 @@ export default function HomePage() {
     };
   }, []);
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
-      <View className="flex-1 items-center justify-center">
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color="blue" />
         <Text>Memuat postingan...</Text>
       </View>
@@ -54,32 +56,55 @@ export default function HomePage() {
   return (
     <FlatList
       data={posts}
-      keyExtractor={(item) => item.id}
+      keyExtractor={(item) => item.id.toString()}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={fetchPosts} />
+      }
       contentContainerStyle={{ padding: 16 }}
       renderItem={({ item }) => (
-        <View className="mb-5 bg-white p-4 rounded-lg shadow">
+        <View
+          style={{
+            marginBottom: 20,
+            backgroundColor: "white",
+            padding: 16,
+            borderRadius: 12,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowOffset: { width: 0, height: 3 },
+            shadowRadius: 5,
+            elevation: 3,
+          }}
+        >
           {/* Email user */}
-          <Text className="font-semibold text-gray-700 mb-1">{item.email}</Text>
+          <Text style={{ fontWeight: "bold", color: "#555", marginBottom: 4 }}>
+            {item.email}
+          </Text>
 
-          {/* Isi konten */}
-          <Text className="text-gray-800 mb-2">{item.content}</Text>
+          {/* Isi teks postingan */}
+          <Text style={{ color: "#333", marginBottom: 10 }}>
+            {item.content}
+          </Text>
 
-          {/* Jika ada gambar */}
-          {item.image_url && (
+          {/* Gambar jika ada */}
+          {item.image_url ? (
             <Image
               source={{ uri: item.image_url }}
-              style={{ width: "100%", height: 200, borderRadius: 10 }}
+              style={{
+                width: "100%",
+                height: 200,
+                borderRadius: 10,
+                marginBottom: 8,
+              }}
               resizeMode="cover"
             />
-          )}
+          ) : null}
 
-          {/* Waktu */}
-          <Text className="text-xs text-gray-400 mt-2">
-            {new Date(item.created_at).toLocaleString()}
+          {/* Waktu posting */}
+          <Text style={{ fontSize: 12, color: "#999" }}>
+            {new Date(item.created_at).toLocaleString("id-ID")}
           </Text>
         </View>
       )}
     />
   );
 }
-  

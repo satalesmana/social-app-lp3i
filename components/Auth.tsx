@@ -1,103 +1,118 @@
-import React, { useState } from 'react'
-import {  StyleSheet, View, AppState, Button, TextInput } from 'react-native'
-import { supabase } from '../lib/supabase'
-import { AlertDialog } from "./global/Alert"
+import React, { useState } from "react";
+import { StyleSheet, View, AppState, Button, TextInput } from "react-native";
+import { supabase } from "../lib/supabase";
+import { AlertDialog } from "./global/Alert";
 
-AppState.addEventListener('change', (state) => {
-  if (state === 'active') {
-    supabase.auth.startAutoRefresh()
+// Auto refresh session Supabase
+AppState.addEventListener("change", (state) => {
+  if (state === "active") {
+    supabase.auth.startAutoRefresh();
   } else {
-    supabase.auth.stopAutoRefresh()
+    supabase.auth.stopAutoRefresh();
   }
-})
+});
 
 export default function Auth() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
   const [errMsg, setErrMsg] = useState("");
-  const [alertTitle, setAlertTitile]= useState("")
+  const [alertTitle, setAlertTitle] = useState("");
 
+  // --- Sign In ---
   async function signInWithEmail() {
-    try{
-      setLoading(true)
+    try {
+      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      })
+        email,
+        password,
+      });
 
-      if (error){
-        throw new Error(error.message)
-      }
-    }catch(err){
-      const msg = err?.message ? err.message : "message undefine";
-      setAlertTitile("Error")
-      setErrMsg(msg)
-      setVisible(true)
-      console.log('err', err)
-    }finally{
-      setLoading(false)
+      if (error) throw new Error(error.message);
+    } catch (err: any) {
+      const msg = err?.message || "Message undefined";
+      setAlertTitle("Error");
+      setErrMsg(msg);
+      setVisible(true);
+      console.log("err", err);
+    } finally {
+      setLoading(false);
     }
   }
 
+  // --- Sign Up ---
   async function signUpWithEmail() {
-    try{
-      setLoading(true)
+    try {
+      setLoading(true);
       const {
         data: { session },
         error,
       } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-      })
+        email,
+        password,
+      });
 
-      if (error){
-        throw new Error(error.message)
-      }
+      if (error) throw new Error(error.message);
 
-      if (!session){
-        setAlertTitile("Info")
-        setErrMsg('Please check your inbox for email verification!')
-        setVisible(true)
+      if (!session) {
+        setAlertTitle("Info");
+        setErrMsg("Please check your inbox for email verification!");
+        setVisible(true);
       }
-    }catch(err){
-      const msg = err?.message ? err.message : "message undefine";
-      setAlertTitile("Error")
-      setErrMsg(msg)
-      setVisible(true)
-      console.log('err', err)
-    }finally{
-      setLoading(false)
+    } catch (err: any) {
+      const msg = err?.message || "Message undefined";
+      setAlertTitle("Error");
+      setErrMsg(msg);
+      setVisible(true);
+      console.log("err", err);
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <View style={styles.container}>
+      {/* Input Email */}
       <View style={[styles.verticallySpaced, styles.mt20]}>
         <TextInput
-          onChangeText={(text) => setEmail(text)}
+          onChangeText={setEmail}
           value={email}
           placeholder="email@address.com"
-          autoCapitalize={'none'}
+          autoCapitalize="none"
         />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <TextInput
-          onChangeText={(text) => setPassword(text)}
-          value={password}
-          secureTextEntry={true}
-          placeholder="Password"
-          autoCapitalize={'none'}
-        />
-      </View>
-      <View style={[styles.verticallySpaced, styles.mt20]}>
-        <Button title="Sign in" disabled={loading} onPress={() => signInWithEmail()} />
-      </View>
-      <View style={styles.verticallySpaced}>
-        <Button title="Sign up" disabled={loading} onPress={() => signUpWithEmail()} />
       </View>
 
+      {/* Input Password */}
+      <View style={styles.verticallySpaced}>
+        <TextInput
+          onChangeText={setPassword}
+          value={password}
+          secureTextEntry
+          placeholder="Password"
+          autoCapitalize="none"
+        />
+      </View>
+
+      {/* Sign In */}
+      <View style={[styles.verticallySpaced, styles.mt20]}>
+        <Button
+          title="Sign in"
+          disabled={loading}
+          onPress={signInWithEmail}
+        />
+      </View>
+
+      {/* Sign Up */}
+      <View style={styles.verticallySpaced}>
+        <Button
+          title="Sign up"
+          disabled={loading}
+          onPress={signUpWithEmail}
+        />
+      </View>
+
+      {/* Alert Dialog */}
       <AlertDialog
         visible={visible}
         title={alertTitle}
@@ -105,7 +120,7 @@ export default function Auth() {
         onClose={() => setVisible(false)}
       />
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -116,9 +131,9 @@ const styles = StyleSheet.create({
   verticallySpaced: {
     paddingTop: 4,
     paddingBottom: 4,
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
   },
   mt20: {
     marginTop: 20,
   },
-})
+});
