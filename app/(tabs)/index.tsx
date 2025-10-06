@@ -1,93 +1,110 @@
-import { View, Text, Image, ScrollView} from "react-native";
-import { Ionicons, Feather } from "@expo/vector-icons";
-import "../../global.css"
+import React, { useEffect, useState } from "react";
+import { View, Text, FlatList, Image, ActivityIndicator, RefreshControl } from "react-native";
+import { supabase } from "../../lib/supabase";
 
-const posts = [
-  {
-    id: 1,
-    user: "Devon Lane",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/300",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-  {
-    id: 2,
-    user: "Darlene Robertson",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-  {
-    id: 3,
-    user: "Darlene Robertson",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-  {
-    id: 4,
-    user: "Darlene Robertson",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-];
+export default function HomePage() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-export default function HomeScreen(){
-    return(
-        <ScrollView>
-            {posts.map((post) => (
-                <View key={post.id} className="border-b border-gray-200 p-4">
-                {/* Header */}
-                <View className="flex-row items-center mb-2">
-                    <Image
-                    source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
-                    className="w-10 h-10 rounded-full mr-3"
-                    />
-                    <View>
-                    <Text className="font-bold">{post.user}</Text>
-                    <Text className="text-gray-500">{post.handle}</Text>
-                    </View>
-                </View>
-                {/* Content */}
-                <Text className="mb-2">{post.text}</Text>
-                {post.image && (
-                    <Image
-                    source={{ uri: post.image }}
-                    className="w-full h-48 rounded-xl mb-2"
-                    resizeMode="cover"
-                    />
-                )}
-                {/* Actions */}
-                <View className="flex-row justify-between mt-2">
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="chatbubble-outline" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.comments}</Text>
-                    </View>
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="repeat" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.shares}</Text>
-                    </View>
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="heart-outline" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.likes}</Text>
-                    </View>
-                    <Feather name="share" size={20} color="gray" />
-                </View>
-                </View>
-            ))}
-        </ScrollView>
-    )
+  // Fungsi ambil data postingan
+  const fetchPosts = async () => {
+    if (!refreshing) setLoading(true);
+
+    const { data, error } = await supabase
+      .from("postingan")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetch posts:", error);
+    } else {
+      setPosts(data || []);
+    }
+
+    setLoading(false);
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    fetchPosts();
+
+    // 🔥 Realtime listener untuk update otomatis
+    const channel = supabase
+      .channel("postingan-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "postingan" },
+        () => fetchPosts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator size="large" color="blue" />
+        <Text>Memuat postingan...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <FlatList
+      data={posts}
+      keyExtractor={(item) => item.id.toString()}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={fetchPosts} />
+      }
+      contentContainerStyle={{ padding: 16 }}
+      renderItem={({ item }) => (
+        <View
+          style={{
+            marginBottom: 20,
+            backgroundColor: "white",
+            padding: 16,
+            borderRadius: 12,
+            shadowColor: "#000",
+            shadowOpacity: 0.1,
+            shadowOffset: { width: 0, height: 3 },
+            shadowRadius: 5,
+            elevation: 3,
+          }}
+        >
+          {/* Email user */}
+          <Text style={{ fontWeight: "bold", color: "#555", marginBottom: 4 }}>
+            {item.email}
+          </Text>
+
+          {/* Isi teks postingan */}
+          <Text style={{ color: "#333", marginBottom: 10 }}>
+            {item.content}
+          </Text>
+
+          {/* Gambar jika ada */}
+          {item.image_url ? (
+            <Image
+              source={{ uri: item.image_url }}
+              style={{
+                width: "100%",
+                height: 200,
+                borderRadius: 10,
+                marginBottom: 8,
+              }}
+              resizeMode="cover"
+            />
+          ) : null}
+
+          {/* Waktu posting */}
+          <Text style={{ fontSize: 12, color: "#999" }}>
+            {new Date(item.created_at).toLocaleString("id-ID")}
+          </Text>
+        </View>
+      )}
+    />
+  );
 }
