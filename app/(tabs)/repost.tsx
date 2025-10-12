@@ -21,7 +21,7 @@ export default function SavedScreen() {
   const [savedPosts, setSavedPosts] = useState<SavedPost[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Fetch saved posts
+  
   async function fetchSavedPosts() {
     try {
       setLoading(true);
@@ -29,7 +29,7 @@ export default function SavedScreen() {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from("saved_posts") // ubah ke "reposts" jika tabel sudah diganti
+        .from("saved_posts") 
         .select(`
           id,
           post_id,
@@ -60,44 +60,43 @@ export default function SavedScreen() {
       if (!user) return;
 
       const { error } = await supabase
-        .from("saved_posts") // ubah ke "reposts" jika tabel sudah diganti
+        .from("saved_posts") 
         .delete()
         .eq("post_id", postId)
         .eq("user_id", user.id);
 
       if (error) throw error;
 
-      // Update lokal biar langsung hilang tanpa refresh
+      
       setSavedPosts((prev) => prev.filter((item) => item.post_id !== postId));
     } catch (err) {
       console.error("❌ Error Repost:", err);
     }
   }
 
-  // 🔹 Initial load + realtime listener
+  
   useEffect(() => {
     fetchSavedPosts();
 
-    // Listener realtime Supabase
     const channel = supabase
-      .channel("saved_posts-changes") // bisa ubah ke "reposts-changes"
+      .channel("saved_posts-changes") 
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "saved_posts" },
         () => {
-          // Setiap ada perubahan (insert/update/delete), panggil ulang data
+          
           fetchSavedPosts();
         }
       )
       .subscribe();
 
-    // Bersihkan listener saat komponen di-unmount
+    
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
 
-  // 🔹 Loading indicator
+  
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
@@ -107,7 +106,7 @@ export default function SavedScreen() {
     );
   }
 
-  // 🔹 Empty state
+  
   if (savedPosts.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
@@ -117,7 +116,7 @@ export default function SavedScreen() {
     );
   }
 
-  // 🔹 Render saved posts
+  
   return (
     <ScrollView className="flex-1 bg-white">
       {savedPosts.map((item) => (
