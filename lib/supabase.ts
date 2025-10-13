@@ -29,3 +29,25 @@ export const uploadImage = async (base64: string, fileName: string) => {
   console.log('Uploaded file:', data)
   return data
 }
+export const uploadPostImage = async (imageUri: string, fileName: string) => {
+  const response = await fetch(imageUri);
+  const blob = await response.blob();
+
+  const { data, error } = await supabase.storage
+    .from("postingan")
+    .upload(fileName, blob, {
+      upsert: true,
+      contentType: "image/jpeg",
+    });
+
+  if (error) {
+    console.error("Upload error:", error);
+    return null;
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from("postingan")
+    .getPublicUrl(fileName);
+
+  return publicUrlData.publicUrl;
+};
