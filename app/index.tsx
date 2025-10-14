@@ -1,4 +1,4 @@
-import { View, Text } from "react-native";
+ import { View, Text } from "react-native";
 import { useState, useEffect } from 'react'
 import { router } from 'expo-router';
 import { Session } from '@supabase/supabase-js'
