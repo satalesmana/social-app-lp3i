@@ -5,7 +5,7 @@ import { View, Text, Pressable, TouchableOpacity, useWindowDimensions } from "re
 import { useState } from 'react';
 import NewPostModal from '../../components/NewPostModal';
 import "../../global.css"
-import { FontAwesome } from '@expo/vector-icons';
+import { FontAwesome, Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const { width } = useWindowDimensions();
@@ -53,25 +53,51 @@ export default function TabLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: 'blue' }}>
+    <Tabs 
+      screenOptions={{ 
+        tabBarActiveTintColor: '#1DA1F2',
+        tabBarInactiveTintColor: 'gray',
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
           headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'home' : 'home-outline'} 
+              size={24} 
+              color={color} 
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="message"
         options={{
           title: 'Message',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'mail' : 'mail-outline'} 
+              size={24} 
+              color={color} 
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
           title: 'Account',
-          headerShown: false
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'person' : 'person-outline'} 
+              size={24} 
+              color={color} 
+            />
+          ),
         }}
       />
     </Tabs>
