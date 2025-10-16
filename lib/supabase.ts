@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@env'
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_URL_2,SUPABASE_ANON_KEY_2 } from '@env'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
@@ -11,10 +11,13 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 })
 
+export const supabaseDb = createClient(SUPABASE_URL_2, SUPABASE_ANON_KEY_2);
+
+
 export const uploadImage = async (base64: string, fileName: string) => {
   const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
-  const { data, error } = await supabase.storage
-    .from('social-apps') // replace with your bucket name
+  const { data, error } = await supabaseDb.storage
+    .from('avatars') // replace with your bucket name
     .upload(`${fileName}`, binary, {
       cacheControl: '3600',
       upsert: false,
