@@ -40,19 +40,29 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ visible, onClo
       if (!session?.user) throw new Error("User not authenticated.");
 
       let finalImageUrl: string | null = null;
+      
       if (imageBase64) {
         const fileName = `${session.user.id}/${Date.now()}.jpg`;
         const uploadResult = await uploadImage(imageBase64, fileName);
-        finalImageUrl = uploadResult?.fullPath || null;
-        if (!finalImageUrl) throw new Error("Image upload failed.");
+        
+        // Gunakan publicUrl, bukan fullPath
+        finalImageUrl = uploadResult?.publicUrl || null;
+        
+        if (!finalImageUrl) {
+          throw new Error("Image upload failed.");
+        }
+        
+        console.log('Final image URL:', finalImageUrl);
       }
 
-      // Data yang dikirim sesuai dengan field di tabel Anda
+      // Data yang dikirim sesuai dengan field di tabel
       const postData = {
         user_id: session.user.id,
         content: content,
         image_url: finalImageUrl,
       };
+
+      console.log('Posting data:', postData);
 
       const { error: insertError } = await supabaseDb.from('posts').insert(postData);
       if (insertError) throw insertError;
@@ -62,6 +72,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({ visible, onClo
       onClose();
 
     } catch (error: any) {
+      console.error('Post error:', error);
       Alert.alert("Error", error.message || "An unknown error occurred.");
     } finally {
       setLoading(false);

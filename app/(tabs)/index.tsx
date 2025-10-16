@@ -3,36 +3,39 @@
 import { View, Text, Image, FlatList, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import React, { useState, useEffect } from 'react';
-import { supabaseDb } from '../../lib/supabase'; // <-- Menggunakan klien database kedua (supabaseDb)
+import { supabaseDb } from '../../lib/supabase';
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "../../global.css";
 
 dayjs.extend(relativeTime);
 
-// Tipe data untuk Postingan, harus cocok dengan struktur data yang kita ambil
+type Profile = {
+  username: string;
+  avatar_url: string;
+};
+
 type Post = {
   id: number;
   content: string;
   created_at: string;
   image_url: string | null;
-  // Kita asumsikan ada tabel 'profiles' yang terhubung
-  profiles: {
-    username: string;
-    avatar_url: string;
-  } | null;
+  user_id: string;
 };
 
-// Komponen untuk merender satu item post
-const PostItem = ({ post }: { post: Post }) => (
+type PostWithProfile = Post & {
+  profile?: Profile | null;
+};
+
+const PostItem = ({ post }: { post: PostWithProfile }) => (
   <View className="border-b border-gray-200 p-4 flex-row">
     <Image
-      source={{ uri: post.profiles?.avatar_url || "https://i.pravatar.cc/150?img=3" }}
+      source={{ uri: post.profile?.avatar_url || "https://i.pravatar.cc/150?img=3" }}
       className="w-12 h-12 rounded-full mr-4"
     />
     <View className="flex-1">
       <View className="flex-row items-center mb-1 flex-wrap">
-        <Text className="font-bold">{post.profiles?.username || 'Anonymous'}</Text>
+        <Text className="font-bold">{post.profile?.username || 'Anonymous'}</Text>
         <Text className="text-gray-500 ml-2">· {dayjs(post.created_at).fromNow()}</Text>
       </View>
       
@@ -57,44 +60,101 @@ const PostItem = ({ post }: { post: Post }) => (
 );
 
 export default function HomeScreen() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Mengambil data awal saat komponen dimuat
   useEffect(() => {
     const fetchPosts = async () => {
-      // Mengambil data dari 'posts' dan menggabungkannya dengan 'profiles'
-      const { data, error } = await supabaseDb
-        .from('posts')
-        .select(`*`) 
-        .order('created_at', { ascending: false });
+      try {
+        // Step 1: Ambil semua posts dulu
+        const { data: postsData, error: postsError } = await supabaseDb
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error("Error fetching posts:", error);
-      } else if (data) {
-        setPosts(data as Post[]);
+        if (postsError) {
+          console.error("Error fetching posts:", postsError);
+          setLoading(false);
+          return;
+        }
+
+        console.log("Posts data:", postsData); // Debug log
+
+        if (!postsData || postsData.length === 0) {
+          setPosts([]);
+          setLoading(false);
+          return;
+        }
+
+        // Step 2: Ambil profiles untuk semua user_id yang ada
+        const userIds = [...new Set(postsData.map(post => post.user_id))];
+        
+        // Step 2: Coba ambil semua kolom dari profiles untuk debug
+        const { data: profilesData, error: profilesError } = await supabaseDb
+          .from('profiles')
+          .select('*')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+          // Tetap tampilkan posts meskipun profiles error
+          setPosts(postsData.map(post => ({ ...post, profile: null })));
+          setLoading(false);
+          return;
+        }
+
+        console.log("Profiles data:", profilesData); // Debug log
+        console.log("Available columns:", profilesData?.[0] ? Object.keys(profilesData[0]) : 'No data'); // Debug kolom yang ada
+
+        // Step 3: Gabungkan posts dengan profiles
+        const postsWithProfiles = postsData.map(post => {
+          const profile = profilesData?.find(p => p.id === post.user_id);
+          return {
+            ...post,
+            profile: profile ? {
+              username: profile.name || profile.full_name || 'Anonymous',
+              avatar_url: profile.avatar_url || 'https://i.pravatar.cc/150?img=3'
+            } : null
+          };
+        });
+
+        setPosts(postsWithProfiles);
+      } catch (error) {
+        console.error("Unexpected error:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
+
     fetchPosts();
   }, []);
 
-  // 2. Mendengarkan postingan baru secara real-time
   useEffect(() => {
     const channel = supabaseDb
       .channel('public:posts')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, 
         async (payload) => {
-          // Ketika ada post baru, ambil data lengkapnya (termasuk profil)
-          const { data: newPost } = await supabaseDb
-            .from('posts')
-            .select(`*`)
-            .eq('id', payload.new.id)
-            .single();
-          
-          if (newPost) {
-            // Tambahkan post baru ke bagian atas daftar
-            setPosts(currentPosts => [newPost as Post, ...currentPosts]);
+          try {
+            const newPost = payload.new as Post;
+            
+            // Ambil profile untuk post baru
+            const { data: profileData } = await supabaseDb
+              .from('profiles')
+              .select('*')
+              .eq('id', newPost.user_id)
+              .single();
+
+            const postWithProfile = {
+              ...newPost,
+              profile: profileData ? {
+                username: profileData.username || profileData.full_name || profileData.name || 'Anonymous',
+                avatar_url: profileData.avatar_url || 'https://i.pravatar.cc/150?img=3'
+              } : null
+            };
+
+            setPosts(currentPosts => [postWithProfile, ...currentPosts]);
+          } catch (error) {
+            console.error("Error handling new post:", error);
           }
         }
       )
