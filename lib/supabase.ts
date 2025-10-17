@@ -11,21 +11,41 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 })
 
-export const uploadImage = async (base64: string, fileName: string) => {
-  const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
-  const { data, error } = await supabase.storage
-    .from('social-apps') // replace with your bucket name
-    .upload(`${fileName}`, binary, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: 'image/jpeg', // or detect dynamically
-    })
 
-  if (error) {
-    console.error('Upload error:', error)
-    return null
+export const uploadImage = async (
+  base64: string,
+  fileName: string,
+  folder: string = "post-images"
+) => {
+  try {
+    const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const uniqueFileName = `${Date.now()}-${fileName}`;
+
+    const ext = fileName.split(".").pop()?.toLowerCase() || "jpeg";
+    const contentType = `image/${ext === "jpg" ? "jpeg" : ext}`;
+
+    const { data, error } = await supabase.storage
+      .from("social-apps")
+      .upload(`${folder}/${uniqueFileName}`, binary, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType,
+      });
+
+    if (error) {
+      console.error("Upload error:", error);
+      return null;
+    }
+
+
+    const { data: publicUrlData } = supabase.storage
+      .from("social-apps")
+      .getPublicUrl(`${folder}/${uniqueFileName}`);
+
+    console.log("✅ Uploaded:", publicUrlData.publicUrl);
+    return publicUrlData.publicUrl;
+  } catch (err) {
+    console.error("Unexpected upload error:", err);
+    return null;
   }
-
-  console.log('Uploaded file:', data)
-  return data
-}
+};
