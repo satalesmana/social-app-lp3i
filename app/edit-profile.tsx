@@ -9,7 +9,7 @@ export default function EditAccount(){
     const [imageName, setImageName] = useState<string | null>(null);
 
     const pickImage = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
+        const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
@@ -17,14 +17,14 @@ export default function EditAccount(){
         base64: true,
         });
 
-        if (!result.canceled) {
-            setImage(result.assets[0].base64 as string);
-            setImageName(result.assets[0].fileName as string);
+        if (!result.canceled && result.assets) {
+            setImage(result.assets[0].uri as string);
+            setImageName(result.assets[0].fileName || 'image.jpg');
         }
     }
 
-    const onSave=()=>{
-        uploadImage(image as string, imageName as string)
+    const onSave = () => {
+        image && imageName && uploadImage(image, imageName);
     }
 
     return(

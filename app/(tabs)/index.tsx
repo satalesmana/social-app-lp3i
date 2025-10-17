@@ -1,93 +1,78 @@
-import { View, Text, Image, ScrollView} from "react-native";
+import { View, Text, Image, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
-import "../../global.css"
+import "../../global.css";
+import { useState, useEffect } from "react";
+import TweetModal from "../../components/TweetModal";
+import { supabase } from '../../lib/supabase';
 
-const posts = [
-  {
-    id: 1,
-    user: "Devon Lane",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/300",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-  {
-    id: 2,
-    user: "Darlene Robertson",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-  {
-    id: 3,
-    user: "Darlene Robertson",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-  {
-    id: 4,
-    user: "Darlene Robertson",
-    handle: "@johndue",
-    text: "Tom is in a big hurry.",
-    image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
-  },
-];
+
+
+
 
 export default function HomeScreen(){
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [postList, setPostList] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch posts from Supabase
+    const fetchPosts = async () => {
+        setLoading(true);
+        const { data, error } = await supabase
+            .from('postingan')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (!error && data) {
+            setPostList(data);
+        }
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchPosts();
+        // Listen for new post event (optional)
+        const handler = () => fetchPosts();
+        window.addEventListener('post:created', handler);
+        return () => window.removeEventListener('post:created', handler);
+    }, []);
+
+    const handlePost = async (content: string, imageUri?: string | null) => {
+        // Posting handled in TweetModal, just refresh
+        setIsModalVisible(false);
+        fetchPosts();
+    };
+
     return(
-        <ScrollView>
-            {posts.map((post) => (
-                <View key={post.id} className="border-b border-gray-200 p-4">
-                {/* Header */}
-                <View className="flex-row items-center mb-2">
-                    <Image
-                    source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
-                    className="w-10 h-10 rounded-full mr-3"
-                    />
-                    <View>
-                    <Text className="font-bold">{post.user}</Text>
-                    <Text className="text-gray-500">{post.handle}</Text>
+        <View className="flex-1">
+            <ScrollView className="flex-1">
+                {loading ? (
+                  <Text className="text-center mt-8">Loading...</Text>
+                ) : postList.length === 0 ? (
+                  <Text className="text-center mt-8">Belum ada postingan.</Text>
+                ) : postList.map((post) => (
+                  <View key={post.id || post.created_at} className="border-b border-gray-200 p-4">
+                    {/* Header */}
+                    <View className="flex-row items-center mb-2">
+                      <Image
+                        source={{ uri: post.avatar_url || "https://randomuser.me/api/portraits/women/44.jpg" }}
+                        className="w-10 h-10 rounded-full mr-3"
+                      />
+                      <View>
+                        <Text className="font-bold">{post.email || 'User'}</Text>
+                        <Text className="text-gray-400 text-xs">{new Date(post.created_at).toLocaleString()}</Text>
+                      </View>
                     </View>
-                </View>
-                {/* Content */}
-                <Text className="mb-2">{post.text}</Text>
-                {post.image && (
-                    <Image
-                    source={{ uri: post.image }}
-                    className="w-full h-48 rounded-xl mb-2"
-                    resizeMode="cover"
-                    />
-                )}
-                {/* Actions */}
-                <View className="flex-row justify-between mt-2">
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="chatbubble-outline" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.comments}</Text>
-                    </View>
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="repeat" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.shares}</Text>
-                    </View>
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="heart-outline" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.likes}</Text>
-                    </View>
-                    <Feather name="share" size={20} color="gray" />
-                </View>
-                </View>
-            ))}
-        </ScrollView>
-    )
+                    {/* Content */}
+                    <Text className="mb-2">{post.content}</Text>
+                    {post.image_url && (
+                      <Image
+                        source={{ uri: post.image_url }}
+                        className="w-full h-48 rounded-xl mb-2"
+                        resizeMode="cover"
+                      />
+                    )}
+                  </View>
+                ))}
+            </ScrollView>
+        </View>
+    );
 }
