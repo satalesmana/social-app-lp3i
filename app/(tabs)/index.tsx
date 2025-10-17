@@ -271,15 +271,12 @@ export default function HomeScreen() {
                 <View className="flex-row justify-between mt-3">
                   <View className="flex-row items-center space-x-1">
                     <Ionicons name="chatbubble-outline" size={20} color="gray" />
-                    <Text className="text-gray-500 text-sm">61</Text>
                   </View>
                   <View className="flex-row items-center space-x-1">
                     <Ionicons name="repeat" size={20} color="gray" />
-                    <Text className="text-gray-500 text-sm">12</Text>
                   </View>
                   <View className="flex-row items-center space-x-1">
                     <Ionicons name="heart-outline" size={20} color="gray" />
-                    <Text className="text-gray-500 text-sm">6.2K</Text>
                   </View>
                   <Ionicons name="share-outline" size={20} color="gray" />
                 </View>
@@ -293,7 +290,12 @@ export default function HomeScreen() {
         onPress={() => setModalVisible(true)}
         className="bg-blue-500 rounded-full w-14 h-14 justify-center items-center absolute bottom-5 right-5 shadow-lg md:hidden"
       >
-        <Feather name="edit-2" size={28} color="white" />
+        <View>
+            <MaterialCommunityIcons name="feather" size={28} color="white" />
+            <View className="absolute -top-1 -left-1">
+              <Feather name="plus" size={16} color="white" />
+            </View>
+          </View>
       </Pressable>
       
       <CreatePostSheet visible={isModalVisible} onClose={() => setModalVisible(false)} />
