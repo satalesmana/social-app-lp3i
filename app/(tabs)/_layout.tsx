@@ -26,7 +26,7 @@ export default function TabLayout() {
 
           <Pressable 
             className="text-lg mb-4"
-            onPress={()=> router.push("/account")}>
+            onPress={()=> router.push("/(account)")}>
               Account
           </Pressable>
 
@@ -38,6 +38,7 @@ export default function TabLayout() {
         <View className="w-2/5 h-screen  border-x border-gray-200 mx-4">
           <Stack>
             <Stack.Screen name='index' options={{title:"Home"}} />
+            <Stack.Screen name='(account)' options={{title:"Account"}} />
           </Stack>
         </View>
 
