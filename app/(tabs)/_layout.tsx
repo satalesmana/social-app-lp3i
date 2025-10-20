@@ -1,15 +1,23 @@
+import { useState } from 'react';
 import { Tabs, Stack, router } from 'expo-router';
 import { View, Text, Pressable, TouchableOpacity, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { FormInputPost } from '../../components/module/post/FormInput';
 import "../../global.css"
 
 export default function TabLayout() {
   const { width } = useWindowDimensions();
+  const [isFormVisible, setFormVisible] = useState(false);
   const isDesktop = width >= 768; // switch layout for tablet/desktop
 
   if(isDesktop){
     return (
       <View className="flex flex-row flex-wrap justify-center">
+        <FormInputPost 
+          visible={isFormVisible} 
+          onClose={() => setFormVisible(false)} 
+          onSubmit={() => {}} />
+
         <View className="w-1/6  h-screen">
           <Text className="text-xl font-bold mb-6">Logo</Text>
           <Pressable 
@@ -30,8 +38,10 @@ export default function TabLayout() {
               Account
           </Pressable>
 
-          <TouchableOpacity className="bg-sky-500 py-2 px-4 rounded-md">
-            <Text className="text-white text-center">Tweet</Text>
+          <TouchableOpacity 
+            onPress={() => setFormVisible(true)}
+            className="bg-sky-500 py-2 px-4 rounded-md">
+              <Text className="text-white text-center">Tweet</Text>
           </TouchableOpacity>
         </View>
 
