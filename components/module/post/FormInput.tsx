@@ -1,5 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Modal, View, Text, Pressable, TextInput } from "react-native";
+import { Modal, View, Text, Pressable, TextInput, Image } from "react-native";
 
 interface AlertProps {
   visible: boolean;
@@ -21,15 +22,34 @@ export const FormInputPost: React.FC<AlertProps> = ({ visible, onSubmit, onClose
         className={`flex-1 bg-black/50 md:justify-center justify-end items-center`}
       >
         <View className="w-full md:w-[657px] bg-white rounded-t-2xl md:rounded-2xl p-6 shadow-lg">
-         <TextInput
+          <View className="flex-row items-center space-x-3">
+            <View className="flex-1">
+              <Pressable>
+                <Ionicons name="image-outline" size={24} color="#1DA1F2" />
+              </Pressable>
+            </View>
+
+            <Text className="text-[15px]">300 Character left</Text>
+          </View>
+
+        <View className="border-t border-gray-300 mt-4 flex-row items-start">
+          <Image
+            source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
+            className="w-10 h-10 rounded-full mr-3 mt-2"
+            />
+          <TextInput
             editable
             multiline
             numberOfLines={4}
+            placeholder="What's happening?"
             maxLength={300}
+            style={{ textAlignVertical: 'top' }}
             onChangeText={text => onChangeText(text)}
             value={value}
-            className="mx-2 my-4 border rounded h-[200px]"
-          />
+            className="mx-2 my-4 h-[200px]"
+          />        
+        </View>
+         
 
           <View className="space-y-3 gap-4">
             <Pressable
