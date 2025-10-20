@@ -1,5 +1,7 @@
-import { View, Text, Image, ScrollView} from "react-native";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import { FlatList} from "react-native";
+import { FloatingButton } from "../../components/global/Button";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { PostCard } from "../../components/module/post/Card";
 import "../../global.css"
 
 const posts = [
@@ -9,9 +11,9 @@ const posts = [
     handle: "@johndue",
     text: "Tom is in a big hurry.",
     image: "https://picsum.photos/500/300",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
+    likes: [],
+    comments: [],
+    shares: [],
   },
   {
     id: 2,
@@ -19,9 +21,9 @@ const posts = [
     handle: "@johndue",
     text: "Tom is in a big hurry.",
     image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
+    likes: [],
+    comments: [],
+    shares: [],
   },
   {
     id: 3,
@@ -29,9 +31,9 @@ const posts = [
     handle: "@johndue",
     text: "Tom is in a big hurry.",
     image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
+    likes: [],
+    comments: [],
+    shares: [],
   },
   {
     id: 4,
@@ -39,55 +41,22 @@ const posts = [
     handle: "@johndue",
     text: "Tom is in a big hurry.",
     image: "https://picsum.photos/500/301",
-    likes: "6.2K",
-    comments: 61,
-    shares: 12,
+    likes: [],
+    comments: [],
+    shares: [],
   },
 ];
 
 export default function HomeScreen(){
     return(
-        <ScrollView>
-            {posts.map((post) => (
-                <View key={post.id} className="border-b border-gray-200 p-4">
-                {/* Header */}
-                <View className="flex-row items-center mb-2">
-                    <Image
-                    source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
-                    className="w-10 h-10 rounded-full mr-3"
-                    />
-                    <View>
-                    <Text className="font-bold">{post.user}</Text>
-                    <Text className="text-gray-500">{post.handle}</Text>
-                    </View>
-                </View>
-                {/* Content */}
-                <Text className="mb-2">{post.text}</Text>
-                {post.image && (
-                    <Image
-                    source={{ uri: post.image }}
-                    className="w-full h-48 rounded-xl mb-2"
-                    resizeMode="cover"
-                    />
-                )}
-                {/* Actions */}
-                <View className="flex-row justify-between mt-2">
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="chatbubble-outline" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.comments}</Text>
-                    </View>
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="repeat" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.shares}</Text>
-                    </View>
-                    <View className="flex-row items-center space-x-1">
-                    <Ionicons name="heart-outline" size={20} color="gray" />
-                    <Text className="text-gray-500">{post.likes}</Text>
-                    </View>
-                    <Feather name="share" size={20} color="gray" />
-                </View>
-                </View>
-            ))}
-        </ScrollView>
+      <SafeAreaProvider>
+        <SafeAreaView style={{flex:1}}>
+          <FloatingButton onPress={() => {}} iconName="add"/>
+            <FlatList
+              data={posts}
+              renderItem={({item}) => <PostCard data={item} />}
+              keyExtractor={item => item.id} />
+        </SafeAreaView>
+      </SafeAreaProvider>
     )
 }
