@@ -1,6 +1,6 @@
 import { FontAwesome5, Feather } from "@expo/vector-icons";
 import { View, Text, Image, ScrollView, TouchableOpacity, Pressable } from "react-native";
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import { router } from "expo-router"
 
 

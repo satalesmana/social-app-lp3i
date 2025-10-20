@@ -1,7 +1,7 @@
 import { View, Text, Pressable, TouchableOpacity, useWindowDimensions } from "react-native";
 import { useState } from "react"
 import * as ImagePicker from 'expo-image-picker';
-import { uploadImage } from '../lib/supabase';
+import { uploadImage } from '../../../lib/supabase';
 
 
 export default function EditAccount(){

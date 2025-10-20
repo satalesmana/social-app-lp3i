@@ -1,5 +1,6 @@
 import { Tabs, Stack, router } from 'expo-router';
 import { View, Text, Pressable, TouchableOpacity, useWindowDimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import "../../global.css"
 
 export default function TabLayout() {
@@ -48,24 +49,33 @@ export default function TabLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: 'blue' }}>
+    <Tabs>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="message"
         options={{
           title: 'Message',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubble-outline" size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="account"
+        name="(account)"
         options={{
           title: 'Account',
-          headerShown: false
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>
