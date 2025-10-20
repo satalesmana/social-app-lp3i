@@ -11,6 +11,8 @@ interface AlertProps {
 export const FormInputPost: React.FC<AlertProps> = ({ visible, onSubmit, onClose }) => {
   const [value, onChangeText] = React.useState(null);
 
+  const characterCount = 300 - (value?.length || 0);
+
   return (
     <Modal
       visible={visible}
@@ -29,28 +31,27 @@ export const FormInputPost: React.FC<AlertProps> = ({ visible, onSubmit, onClose
               </Pressable>
             </View>
 
-            <Text className="text-[15px]">300 Character left</Text>
+            <Text className="text-[15px]">{characterCount} Character left</Text>
           </View>
 
-        <View className="border-t border-gray-300 mt-4 flex-row items-start">
-          <Image
-            source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
-            className="w-10 h-10 rounded-full mr-3 mt-2"
-            />
-          <TextInput
-            editable
-            multiline
-            numberOfLines={4}
-            placeholder="What's happening?"
-            maxLength={300}
-            style={{ textAlignVertical: 'top' }}
-            onChangeText={text => onChangeText(text)}
-            value={value}
-            className="mx-2 my-4 h-[200px]"
-          />        
-        </View>
+          <View className="border-t border-gray-300 mt-4 flex-row items-start">
+            <Image
+              source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
+              className="w-10 h-10 rounded-full mr-3 mt-2"
+              />
+            <TextInput
+              editable
+              multiline
+              numberOfLines={4}
+              placeholder="What's happening?"
+              maxLength={300}
+              style={{ textAlignVertical: 'top' }}
+              onChangeText={text => onChangeText(text)}
+              value={value}
+              className="mx-2 my-4 h-[200px] w-full"
+            />        
+          </View>
          
-
           <View className="space-y-3 gap-4">
             <Pressable
               onPress={onClose}
@@ -66,6 +67,7 @@ export const FormInputPost: React.FC<AlertProps> = ({ visible, onSubmit, onClose
               <Text className="text-center text-[#404040] font-semibold">Close</Text>
             </Pressable>
           </View>
+
         </View>
       </View>
     </Modal>
