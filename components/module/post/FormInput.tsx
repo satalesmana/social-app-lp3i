@@ -1,17 +1,125 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Modal, View, Text, Pressable, TextInput, Image } from "react-native";
+import { Modal, View, Text, Pressable, TextInput, Image, Platform, TouchableOpacity } from "react-native";
+import {supabase} from "../../../lib/supabase"
 
 interface AlertProps {
   visible: boolean;
-  onSubmit: () => void;
   onClose: () => void;
+  onSubmitedPost: () => void;
 }
 
-export const FormInputPost: React.FC<AlertProps> = ({ visible, onSubmit, onClose }) => {
-  const [value, onChangeText] = React.useState(null);
+const UiHeader = (props:any)=>{
+    if(Platform.OS !== "web"){
+      return (
+        <View className="border-b border-gray-300  flex-row items-center space-x-3">
+          <View className="flex-1">
+            <Pressable >
+              <Ionicons name="image-outline" size={24} color="#1DA1F2" />
+            </Pressable>
+          </View>
+          <Text className="text-[15px]">{props.characterCount} Character left</Text>
+        </View>
+      )
+    }
+    return (
+      <View className="flex flex-row w-full justify-between">
+        <Pressable
+          onPress={props.onClose}
+          className=" border-[#0088FF] border h-[39px] px-4 py-2 rounded-xl"
+        >
+          <Text className="text-center text-[#404040] font-semibold">Close</Text>
+        </Pressable>
 
+        <Pressable
+          onPress={props.onSave}
+          className=" bg-[#1DA1F2] h-[39px] px-4 py-2 rounded-xl"
+        >
+          <Text className="text-center text-white font-semibold">Post</Text>
+        </Pressable>
+      </View>
+    )
+}
+
+const UiFooter=(props:any)=>{
+  if(Platform.OS !== "web"){
+    return(
+      <View className="space-y-3 gap-4">
+        <TouchableOpacity
+          onPress={props.onSave}
+          className="w-full bg-[#1DA1F2] h-[39px] px-4 py-2 rounded-xl"
+        >
+          <Text className="text-center text-white font-semibold">Save</Text>
+        </TouchableOpacity>
+
+        <Pressable
+          onPress={props.onClose}
+          className="w-full border-[#0088FF] border h-[39px] px-4 py-2 rounded-xl"
+        >
+          <Text className="text-center text-[#404040] font-semibold">Close</Text>
+        </Pressable>
+      </View>
+    )
+  }
+
+  return (
+    <View className="border-t border-gray-300  flex-row items-center space-x-3">
+      <View className="flex-1">
+        <Pressable>
+          <Ionicons name="image-outline" size={24} color="#1DA1F2" />
+        </Pressable>
+      </View>
+      <Text className="text-[15px]">{props.characterCount} Character left</Text>
+    </View>
+  )
+}
+
+
+export const FormInputPost: React.FC<AlertProps> = ({ visible, onClose, onSubmitedPost }) => {
+  const [value, onChangeText] = React.useState("");
+  const [session, setSession] = React.useState<Session | null>(null)
+  const [image, setImage] = React.useState("");
+  
   const characterCount = 300 - (value?.length || 0);
+
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        setSession(session)
+    }).catch((error) => {
+        console.error("Error getting session:", error)
+    })
+  })
+
+  
+
+  const onSave =async ()=>{
+    if(value.length <=0) return;
+
+    const data = { 
+        createdby: session?.user?.name || 'guest', 
+        text: value,
+        handle: session?.user.email,
+        image: image,
+        likes:[],
+        comments:[],
+        shares:[]
+    }
+
+    const { error } =  await supabase
+        .schema('public')
+        .from("post")
+        .insert(data)
+
+    onChangeText("");
+
+    if(error){
+        console.error("Error sending message:", error);
+    }
+    onClose()
+    onSubmitedPost()
+  }
+
+  
 
   return (
     <Modal
@@ -24,17 +132,10 @@ export const FormInputPost: React.FC<AlertProps> = ({ visible, onSubmit, onClose
         className={`flex-1 bg-black/50 md:justify-center justify-end items-center`}
       >
         <View className="w-full md:w-[657px] bg-white rounded-t-2xl md:rounded-2xl p-6 shadow-lg">
-          <View className="flex-row items-center space-x-3">
-            <View className="flex-1">
-              <Pressable>
-                <Ionicons name="image-outline" size={24} color="#1DA1F2" />
-              </Pressable>
-            </View>
 
-            <Text className="text-[15px]">{characterCount} Character left</Text>
-          </View>
+          <UiHeader characterCount={characterCount} onSave={onSave} onClose={onClose}/>
 
-          <View className="border-t border-gray-300 mt-4 flex-row items-start">
+          <View className="mt-4 flex-row items-start">
             <Image
               source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
               className="w-10 h-10 rounded-full mr-3 mt-2"
@@ -51,23 +152,7 @@ export const FormInputPost: React.FC<AlertProps> = ({ visible, onSubmit, onClose
               className="mx-2 my-4 h-[200px] w-full"
             />        
           </View>
-         
-          <View className="space-y-3 gap-4">
-            <Pressable
-              onPress={onClose}
-              className="w-full bg-[#1DA1F2] h-[39px] px-4 py-2 rounded-xl"
-            >
-              <Text className="text-center text-white font-semibold">Post</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={onClose}
-              className="w-full border-[#0088FF] border h-[39px] px-4 py-2 rounded-xl"
-            >
-              <Text className="text-center text-[#404040] font-semibold">Close</Text>
-            </Pressable>
-          </View>
-
+          <UiFooter  onSave={onSave} onClose={onClose}/>
         </View>
       </View>
     </Modal>

@@ -4,8 +4,8 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 interface CardDataInterface{
     image?: string;
     id: string;
-    user: string;
     handle: string;
+    createdby: string;
     text: string;
     comments: Array<string>
     shares: Array<string>
@@ -25,7 +25,7 @@ export const PostCard:React.FC<CardProps> = ({data}) => {
                     className="w-10 h-10 rounded-full mr-3"
                     />
                 <View>
-                    <Text className="font-bold">{data.user}</Text>
+                    <Text className="font-bold">{data.createdby}</Text>
                     <Text className="text-gray-500">{data.handle}</Text>
                 </View>
             </View>
