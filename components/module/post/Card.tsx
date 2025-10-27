@@ -8,16 +8,20 @@ interface CardDataInterface{
     createdby: string;
     text: string;
     comments: Array<string>
+    post_like: Array<any>
     shares: Array<string>
     likes: Array<string>
 }
 
 interface CardProps {
     data: CardDataInterface;
-    onlikeAction: (value:string)=> void
+    userId?: string;
+    onlikeAction: (value:string, hasLike:Boolean)=> void
 }
 
-export const PostCard:React.FC<CardProps> = ({data, onlikeAction}) => {
+export const PostCard:React.FC<CardProps> = ({data, userId, onlikeAction }) => {
+    const hasLike = data.post_like.filter((item)=> item.user_id == userId).length > 0
+
     return (
         <View key={data.id} className="border-b border-gray-200 p-4">
             <View className="flex-row items-center mb-2">
@@ -42,20 +46,25 @@ export const PostCard:React.FC<CardProps> = ({data, onlikeAction}) => {
             <View className="flex-row justify-between mt-2">
                 <View className="flex-row items-center space-x-1 gap-2">
                     <Ionicons name="chatbubble-outline" size={20} color="gray" />
-                    <Text className="text-gray-500">{data.comments.length}</Text>
+                    {/* <Text className="text-gray-500">{data.comments.length}</Text> */}
                 </View>
 
                 <View className="flex-row items-center space-x-1 gap-2">
                     <Ionicons name="repeat" size={20} color="gray" />
-                    <Text className="text-gray-500">{data.shares.length}</Text>
+                    {/* <Text className="text-gray-500">{data.shares.length}</Text> */}
                 </View>
 
                 <View className="flex-row items-center space-x-1 gap-2">
-                    <Pressable onPress={()=>onlikeAction(data.id)}>
-                        <Ionicons name="heart-outline" size={20} color="gray" />
-                        <Ionicons name="heart" size={20} color="red" />
+                    <Pressable onPress={()=>onlikeAction(data.id,hasLike)}>
+                        {hasLike &&
+                            <Ionicons name="heart" size={20} color="red" />
+                        }
+                        
+                        {!hasLike  &&
+                            <Ionicons name="heart-outline" size={20} color="gray" />  
+                        }
                     </Pressable>
-                    <Text className="text-gray-500">{data.likes.length}</Text>
+                    <Text className="text-gray-500">{data.post_like.length}</Text>
                 </View>
             </View>
         </View>

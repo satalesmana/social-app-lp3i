@@ -21,14 +21,14 @@ export default function HomeScreen(){
         console.error("Error getting session:", error)
     })
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .schema('public')
       .from("post")
-      // .join("post_like", "post_like.post_id = post.id")
-      .select("post")
+      .select("id, created_at, text, createdby, handle, image, comments, shares, post_like(id, post_id, user_id, created_at)")
       .order("created_at", { ascending: false })
       .limit(50);
-
+    console.log('sf', data)
+    // console.log('sf', error)
     if(data){setPost(data);}
   }
 
@@ -36,15 +36,26 @@ export default function HomeScreen(){
     onLoad()
   },[]);
 
-  const onlikeAction=async(post_id:string)=>{
-   const { error } =  await supabase
+  const onlikeAction=async(post_id:string, hasLike:Boolean)=>{
+    console.log('hasLike', hasLike)
+    if(!hasLike){
+       const { error } =  await supabase
+        .schema('public')
+        .from("post_like")
+        .insert({
+          post_id: post_id,
+          user_id: session?.user.id
+        })
+    }else{
+       const { error } =  await supabase
       .schema('public')
       .from("post_like")
-      .insert({
-        post_id: post_id,
-        user_id: session?.user.id
-      })
-      console.log('error', error)
+      .delete()
+      .eq("user_id", session?.user.id);
+
+      console.log('error=>', error)
+    }
+  
     onLoad()
   }
 
@@ -62,7 +73,10 @@ export default function HomeScreen(){
 
         <FlatList
           data={posts}
-          renderItem={({item}) => <PostCard data={item} onlikeAction={(value)=> onlikeAction(value)} />}
+          renderItem={({item}) => <PostCard 
+            data={item} 
+            onlikeAction={(value, hasLike)=> onlikeAction(value, hasLike)}
+            userId={session?.user.id as string} />}
           keyExtractor={item => item.id} />
       </SafeAreaView>
     </SafeAreaProvider>
