@@ -51,6 +51,7 @@ export default function HomeScreen(){
       .schema('public')
       .from("post_like")
       .delete()
+      .eq("post_id", post_id)
       .eq("user_id", session?.user.id);
 
       console.log('error=>', error)
