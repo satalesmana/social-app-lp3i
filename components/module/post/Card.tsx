@@ -17,13 +17,14 @@ interface CardProps {
     data: CardDataInterface;
     userId?: string;
     onlikeAction: (value:string, hasLike:Boolean)=> void
+    onDetail: (value:string)=> void
 }
 
-export const PostCard:React.FC<CardProps> = ({data, userId, onlikeAction }) => {
+export const PostCard:React.FC<CardProps> = ({data, userId, onlikeAction, onDetail }) => {
     const hasLike = data.post_like.filter((item)=> item.user_id == userId).length > 0
 
     return (
-        <View key={data.id} className="border-b border-gray-200 p-4">
+        <View key={data.id} className="border-b border-gray-200 p-4 my-1 bg-white">
             <View className="flex-row items-center mb-2">
                 <Image
                     source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
@@ -45,8 +46,9 @@ export const PostCard:React.FC<CardProps> = ({data, userId, onlikeAction }) => {
 
             <View className="flex-row justify-between mt-2">
                 <View className="flex-row items-center space-x-1 gap-2">
-                    <Ionicons name="chatbubble-outline" size={20} color="gray" />
-                    {/* <Text className="text-gray-500">{data.comments.length}</Text> */}
+                    <Pressable onPress={()=>onDetail(data.id)}>
+                        <Ionicons name="chatbubble-outline" size={20} color="gray" />
+                    </Pressable>
                 </View>
 
                 <View className="flex-row items-center space-x-1 gap-2">

@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { FlatList, Platform} from "react-native";
-import { FloatingButton } from "../../components/global/Button";
+import { FloatingButton } from "../../../components/global/Button";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { PostCard } from "../../components/module/post/Card";
-import { FormInputPost } from "../../components/module/post/FormInput";
-import { supabase } from "../../lib/supabase";
+import { PostCard } from "../../../components/module/post/Card";
+import { FormInputPost } from "../../../components/module/post/FormInput";
+import { supabase } from "../../../lib/supabase";
 import { Session } from '@supabase/supabase-js'
-import "../../global.css"
+import "../../../global.css"
+import { router } from "expo-router";
 
 
 export default function HomeScreen(){
@@ -27,8 +28,6 @@ export default function HomeScreen(){
       .select("id, created_at, text, createdby, handle, image, comments, shares, post_like(id, post_id, user_id, created_at)")
       .order("created_at", { ascending: false })
       .limit(50);
-    console.log('sf', data)
-    // console.log('sf', error)
     if(data){setPost(data);}
   }
 
@@ -37,7 +36,6 @@ export default function HomeScreen(){
   },[]);
 
   const onlikeAction=async(post_id:string, hasLike:Boolean)=>{
-    console.log('hasLike', hasLike)
     if(!hasLike){
        const { error } =  await supabase
         .schema('public')
@@ -53,11 +51,12 @@ export default function HomeScreen(){
       .delete()
       .eq("post_id", post_id)
       .eq("user_id", session?.user.id);
-
-      console.log('error=>', error)
     }
-  
     onLoad()
+  }
+
+  const onClickDtail=(id:string)=>{
+    router.push(`(tabs)/comments/${id}`)
   }
 
   return(
@@ -77,6 +76,7 @@ export default function HomeScreen(){
           renderItem={({item}) => <PostCard 
             data={item} 
             onlikeAction={(value, hasLike)=> onlikeAction(value, hasLike)}
+            onDetail={(id)=> onClickDtail(id)}
             userId={session?.user.id as string} />}
           keyExtractor={item => item.id} />
       </SafeAreaView>
