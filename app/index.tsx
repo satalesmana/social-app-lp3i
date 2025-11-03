@@ -20,7 +20,7 @@ export default function SplashScreen(){
             if (!session) {
                 router.replace("login")
             }else{
-                router.replace("(tabs)")
+                router.replace("(tabs)/(home)")
             }
         })
     }, [])
