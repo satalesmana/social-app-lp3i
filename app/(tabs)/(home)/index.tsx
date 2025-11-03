@@ -25,9 +25,11 @@ export default function HomeScreen(){
     const { data, error } = await supabase
       .schema('public')
       .from("post")
-      .select("id, created_at, text, createdby, handle, image, comments, shares, post_like(id, post_id, user_id, created_at)")
+      .select("id, created_at, text, createdby, handle, image, comments, shares, post_comments(id, post_id), post_like(id, post_id, user_id, created_at)")
       .order("created_at", { ascending: false })
       .limit(50);
+
+    console.log('error', error)
     if(data){setPost(data);}
   }
 

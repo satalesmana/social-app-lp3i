@@ -8,6 +8,7 @@ interface CardDataInterface{
     text: string;
     comments: Array<string>
     post_like: Array<any>
+    post_comments:  Array<any>
     shares: Array<string>
     likes: Array<string>
 }
@@ -48,6 +49,7 @@ export const PostCard:React.FC<CardProps> = ({data, userId, onlikeAction, onDeta
                     <Pressable onPress={()=>onDetail(data.id)}>
                         <Ionicons name="chatbubble-outline" size={20} color="gray" />
                     </Pressable>
+                    <Text className="text-gray-500">{data.post_comments.length}</Text>
                 </View>
 
                 <View className="flex-row items-center space-x-1 gap-2">
