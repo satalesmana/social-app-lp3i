@@ -24,7 +24,7 @@ export default function TabLayout() {
           <Pressable 
             className="text-lg mb-4"
             onPress={()=> router.push("/(home)")}>
-              {i18n.t('menu_home')}
+              {i18n.t('menu_home')} 
           </Pressable>
           
           <Pressable 
