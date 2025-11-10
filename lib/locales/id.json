@@ -1,0 +1,11 @@
+{
+	"hello": "halo %{name}!",
+	"select_language": "Pilih bahasa",
+	"language": "Bahasa",
+	"language_name": "Bahasa Indonesia",
+	"edit_profile": "Ubah Profil",
+	"setting": "Pengaturan",
+	"menu_home": "Branda",
+	"menu_message": "Pesan",
+	"menu_account": "Akun"
+}

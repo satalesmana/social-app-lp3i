@@ -2,9 +2,14 @@ import { FontAwesome5, Feather } from "@expo/vector-icons";
 import { View, Text, Image, ScrollView, TouchableOpacity, Pressable } from "react-native";
 import { supabase } from '../../../lib/supabase';
 import { router } from "expo-router"
+import { useState } from "react";
+import { SelectLanguage } from '../../../components/global/SelectLanguage'
+import { i18n } from "../../../lib/i18n"
 
 
 export default function AccountPage(){
+    const [showSelectLang, setShowSectLang] = useState(false)
+
     const onSignOut=async()=>{
         const { error } = await supabase.auth.signOut({ scope: 'local' })
 
@@ -12,13 +17,23 @@ export default function AccountPage(){
             router.replace("login")
         }
     }
-
+    
     const onEditProfile=()=>{
         router.push("edit-profile")
     }
 
+    const items = [
+      { icon: "globe", label: i18n.t('language'), value: i18n.t('language_name'), action: ()=> setShowSectLang(true)},
+      { icon: "sliders", label: i18n.t('setting') },
+      { icon: "help-circle", label: "FAQ" },
+      { icon: "shield", label: "Kebijakan Privasi" },
+      { icon: "file-text", label: "Syarat & Ketentuan" },
+      { icon: "file", label: "Lisensi Perangkat Lunak" },
+      { icon: "mail", label: "Kontak Kami" },
+    ];
+
     return(
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, backgroundColor:'white' }}>
         {/* Header */}
         <View className="bg-green-500 rounded-b-3xl pb-16 items-center">
           {/* Profile Image */}
@@ -34,30 +49,6 @@ export default function AccountPage(){
 
         {/* Card Section */}
         <View className="mx-5 -mt-10 bg-white rounded-2xl p-5 shadow-md">
-          {/* Buttons Row */}
-          <View className="flex-row justify-between mb-6">
-            <TouchableOpacity className="items-center">
-              <View className="bg-green-100 p-4 rounded-xl">
-                <FontAwesome5 name="wallet" size={20} color="#22c55e" />
-              </View>
-              <Text className="text-xs mt-2">Payment</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity className="items-center">
-              <View className="bg-green-100 p-4 rounded-xl">
-                <Feather name="settings" size={20} color="#22c55e" />
-              </View>
-              <Text className="text-xs mt-2">Settings</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity className="items-center">
-              <View className="bg-green-100 p-4 rounded-xl">
-                <Feather name="bell" size={20} color="#22c55e" />
-              </View>
-              <Text className="text-xs mt-2">Notification</Text>
-            </TouchableOpacity>
-          </View>
-
           {/* Info Section */}
           <View className="space-y-4">
             <View className="flex-row justify-between">
@@ -74,30 +65,45 @@ export default function AccountPage(){
               <Text className="text-gray-500">Gender:</Text>
               <Text className="text-gray-700">Male</Text>
             </View>
-
-            <View className="flex-row justify-between">
-              <Text className="text-gray-500">Address:</Text>
-              <Text className="text-gray-700 w-40 text-right">
-                Jl. demo ts
-              </Text>
-            </View>
           </View>
+
+           <Pressable 
+              onPress={onEditProfile}
+              className="mt-3 py-2 flex items-center justify-center h-[40px] rounded-2xl bg-[#22c55e]">
+              <Text className="text-white">
+                {i18n.t('edit_profile')}
+              </Text>
+          </Pressable>
         </View>
 
-        <View className="mx-5 mt-5">
-            <Pressable 
-                onPress={onEditProfile}
-                className="py-2 flex items-center justify-center h-[50px] rounded-2xl bg-[#22c55e]">
-                <Text className="text-white">Edit Profile</Text>
-            </Pressable>
+        <View className="mt-5">
+            <Text className="mx-5">Settings</Text>
 
-            <Pressable 
-                onPress={onSignOut}
-                className="py-2 mt-4 flex items-center justify-center h-[50px] rounded-2xl bg-[#911b03]">
-                <Text className="text-white">Logout</Text>
-            </Pressable>
+            <View className="mx-5">
+              {items.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  className="flex-row items-center justify-between py-4 border-b border-gray-200"
+                  activeOpacity={0.6}
+                  onPress={item?.action}
+                >
+                  <View className="flex-row items-center space-x-3">
+                    <Feather name={item.icon} size={20} color="#6B7280" />
+                    <Text className="text-base text-gray-800">{item.label}</Text>
+                  </View>
+
+                  <View className="flex-row items-center space-x-2">
+                    {item.value && (
+                      <Text className="text-sm text-gray-500">{item.value}</Text>
+                    )}
+                    <Feather name="chevron-right" size={18} color="#6B7280" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+             
+            <SelectLanguage visible={showSelectLang} key="selectLang" onSelected={()=>setShowSectLang(false)}/>
         </View>
-
       </ScrollView>
-    )
+  )
 }

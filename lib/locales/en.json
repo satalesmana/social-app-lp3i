@@ -1,0 +1,11 @@
+{
+	"hello": "hello %{name}!",
+	"select_language": "Select Language",
+	"language": "Language",
+	"language_name": "English",
+	"edit_profile": "Edit Profile",
+	"setting": "Settings",
+	"menu_home": "Home",
+	"menu_message": "Message",
+	"menu_account": "Account"
+}

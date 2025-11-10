@@ -4,6 +4,7 @@ import { View, Text, Pressable, TouchableOpacity, useWindowDimensions } from "re
 import { Ionicons } from "@expo/vector-icons";
 import { FormInputPost } from '../../components/module/post/FormInput';
 import "../../global.css"
+import { i18n } from '../../lib/i18n'
 
 export default function TabLayout() {
   const { width } = useWindowDimensions();
@@ -23,7 +24,7 @@ export default function TabLayout() {
           <Pressable 
             className="text-lg mb-4"
             onPress={()=> router.push("/(home)")}>
-              Home
+              {i18n.t('menu_home')}
           </Pressable>
           
           <Pressable 
@@ -65,7 +66,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(home)"
         options={{
-          title: 'Home',
+          title: i18n.t('menu_home'),
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
@@ -75,7 +76,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="message"
         options={{
-          title: 'Message',
+          title: i18n.t('menu_message'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubble-outline" size={size} color={color} />
           ),
@@ -84,7 +85,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="(account)"
         options={{
-          title: 'Account',
+          title: i18n.t('menu_account'),
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-outline" size={size} color={color} />
