@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Modal, View, Text, Pressable, TextInput, Image, Platform, TouchableOpacity } from "react-native";
 import {supabase} from "../../../lib/supabase"
+import { Session } from "@supabase/supabase-js";
 
 interface AlertProps {
   visible: boolean;
@@ -75,7 +76,7 @@ const UiFooter=(props:any)=>{
 }
 
 
-export const FormInputPost: React.FC<AlertProps> = ({ visible, onClose, onSubmitedPost }) => {
+export const FormInputPost: React.FC<AlertProps> = ({ visible, onClose, onSubmitedPost = () => {} }) => {
   const [value, onChangeText] = React.useState("");
   const [session, setSession] = React.useState<Session | null>(null)
   const [image, setImage] = React.useState("");
@@ -88,7 +89,7 @@ export const FormInputPost: React.FC<AlertProps> = ({ visible, onClose, onSubmit
     }).catch((error) => {
         console.error("Error getting session:", error)
     })
-  })
+  }, [])
 
   
 
@@ -114,9 +115,10 @@ export const FormInputPost: React.FC<AlertProps> = ({ visible, onClose, onSubmit
 
     if(error){
         console.error("Error sending message:", error);
+        return;
     }
-    onClose()
-    onSubmitedPost()
+    onClose();
+    onSubmitedPost();
   }
 
   

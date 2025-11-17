@@ -1,21 +1,28 @@
-import React from 'react'
-import { SafeAreaView,Platform, KeyboardAvoidingView, View, Text, FlatList, TextInput, Button } from 'react-native'
-import { Session } from '@supabase/supabase-js'
-import { supabase } from "../../lib/supabase";
-import dayjs from 'dayjs';
 
-type Message = {
-    id: number;
-    user_id: string;
-    message: string;
-    email: string;
-    created_at: string;
-};
+import React from 'react'
+import { SafeAreaView, Platform, KeyboardAvoidingView, View, Text, FlatList, TextInput, Button, ActivityIndicator } from 'react-native'
+import { Session } from '@supabase/supabase-js'
+import { supabase } from "../../lib/supabase"; 
+import dayjs from 'dayjs';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../../store/store'; 
+import { 
+  fetchMessages,     // Thunk untuk mengambil
+  sendMessage,       // Thunk untuk mengirim
+  messageReceived,   // untuk realtime insert
+  messageUpdated,    // untuk realtime update
+  messageDeleted,     // untuk realtime delete
+  Message
+} from '../../store/features/messagesSlice'; 
+
 
 export default function MessagePage(){
     const [session, setSession] = React.useState<Session | null>(null)
     const [input, setInput] = React.useState("")
-    const [messages, setMessage] = React.useState<Message[]>([]);
+    const dispatch = useDispatch<AppDispatch>();    
+    const messages = useSelector((state: RootState) => state.messages.items);
+    const loadingStatus = useSelector((state: RootState) => state.messages.loading);
+    const error = useSelector((state: RootState) => state.messages.error);
 
     React.useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -23,8 +30,8 @@ export default function MessagePage(){
         }).catch((error) => {
             console.error("Error getting session:", error)
         })
+        dispatch(fetchMessages());
 
-        fetchMessages();
 
         const channel = supabase
             .channel("messages-channel")
@@ -32,59 +39,39 @@ export default function MessagePage(){
                 "postgres_changes",
                 { event: "*", schema: "public", table: "message" },
                 (payload) => {
-                    setMessage((prev) => {
-                        if (payload.eventType === "INSERT") {
-                            // Add new message to the top
-                            return [payload.new as Message, ...prev];
-                        }
-                        if (payload.eventType === "UPDATE") {
-                            // Update the message in the list
-                            return prev.map((msg) =>
-                                msg.id === payload.new.id ? payload.new as Message : msg
-                            );
-                        }
-                        if (payload.eventType === "DELETE") {
-                            // Remove the deleted message
-                            return prev.filter((msg) => msg.id !== payload.old.id);
-                        }
-                        return prev;
-                    });
+                    if (payload.eventType === "INSERT") {
+                        // Kirim data ke reducer 'messageReceived'
+                        dispatch(messageReceived(payload.new as Message));
+                    }
+                    if (payload.eventType === "UPDATE") {
+                        dispatch(messageUpdated(payload.new as Message));
+                    }
+                    if (payload.eventType === "DELETE") {
+                        dispatch(messageDeleted(payload as any));
+                    }
                 }
             )
             .subscribe();
-
         return () => {
             supabase.removeChannel(channel);
         };
-     },[]);
+    },[dispatch]); 
 
-    async function fetchMessages() {
-        const { data } = await supabase
-            .schema('public')
-            .from("message")
-            .select("*")
-            .order("created_at", { ascending: false })
-            .limit(50);
-        setMessage(data);
-    }
 
-    async function sendMessage() {
-        if (!input.trim()) return;
-
-        const data = { 
+    async function handleSendMessage() {
+        if (!input.trim() || !session) return;
+        const messageData = { 
             user_id: session?.user.id, 
             message: input,
             email: session?.user.email
         }
+        try {
+            
+            await dispatch(sendMessage(messageData)).unwrap();
+            setInput("");
 
-        const { error } =  await supabase
-            .schema('public')
-            .from("message")
-            .insert(data)
-
-        setInput("");
-        if(error){
-            console.error("Error sending message:", error);
+        } catch (rejectedValueOrSerializedError) {
+            console.error("Failed to send message:", rejectedValueOrSerializedError);
         }
     }
 
@@ -110,6 +97,25 @@ export default function MessagePage(){
         );
     };
 
+
+    if (loadingStatus === 'pending') {
+        return (
+            <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" />
+                <Text>Loading messages...</Text>
+            </SafeAreaView>
+        );
+    }
+    
+    if (error) {
+        return (
+            <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Text>Error fetching messages:</Text>
+                <Text>{error}</Text>
+            </SafeAreaView>
+        );
+    }
+    
     return(
          <KeyboardAvoidingView
             className="flex-1"
@@ -118,22 +124,24 @@ export default function MessagePage(){
         >
             <SafeAreaView style={{ flex: 1, padding: 16 }}>
                 <FlatList
-                    data={messages}
+                    data={messages} // <-- Data sekarang dari Redux
                     keyExtractor={(item) => item.id.toString()}
                     inverted
                     renderItem={renderMessage}
                     contentContainerStyle={{ paddingVertical: 10 }}
                 />
 
-            <View className="flex-row items-center border-t border-neutral-200 py-2">
-                <TextInput
-                    value={input}
-                    onChangeText={setInput}
-                    placeholder="Type a message..."
-                    className="flex-1 border border-neutral-300 rounded-2xl px-3 py-2 mr-2"
-                />
-                <Button title="Send" onPress={sendMessage} />
-            </View>
+                <View className="flex-row items-center border-t border-neutral-200 py-2">
+                    <TextInput
+                        value={input}
+                        onChangeText={setInput}
+                        placeholder="Type a message..."
+                        className="flex-1 border border-neutral-300 rounded-2xl px-3 py-2 mr-2"
+                        onSubmitEditing={handleSendMessage}
+                        returnKeyType="send"
+                    />
+                    <Button title="Send" onPress={handleSendMessage} /> 
+                </View>
             </SafeAreaView>
         </KeyboardAvoidingView>
     )
