@@ -97,6 +97,7 @@ export const FormInputPost: React.FC<AlertProps> = ({ visible, onClose, onSubmit
     if(value.length <=0) return;
 
     const data = { 
+        user_id: session?.user?.id,
         createdby: session?.user?.user_metadata.full_name, 
         text: value,
         handle: session?.user.email,

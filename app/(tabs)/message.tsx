@@ -8,6 +8,11 @@ import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 
+// -- IMPORT REDUX --
+import { useAppSelector, useAppDispatch } from '../../lib/redux/hooks';
+import { fetchMessages, sendMessage } from '../../lib/redux/messageSlice';
+
+// Definisikan ulang Tipe Message (atau import dari slice jika Anda mengekspornya)
 type Message = {
     id: number;
     user_id: string;
@@ -39,11 +44,15 @@ const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dr
 
 
 export default function MessagePage() {
+    const dispatch = useAppDispatch(); // <-- Gunakan hook Redux
+
+    // -- Ambil state dari REDUX --
+    const { messages, status: messageStatus } = useAppSelector((state) => state.messages);
+
+    // State lokal untuk UI (session, input, dll)
     const [session, setSession] = React.useState<Session | null>(null);
     const [input, setInput] = React.useState("");
-    const [messages, setMessages] = React.useState<Message[]>([]);
     const [replyingTo, setReplyingTo] = React.useState<Message | null>(null);
-    // State baru untuk melacak pesan yang sedang di-hover (hanya untuk web)
     const [hoveredMessageId, setHoveredMessageId] = React.useState<number | null>(null);
     const swipeableRefs = React.useRef<{ [key: number]: Swipeable | null }>({});
 
@@ -53,15 +62,18 @@ export default function MessagePage() {
             setSession(session);
         });
 
-        fetchMessages();
+        // -- Panggil Thunk fetchMessages saat komponen load --
+        dispatch(fetchMessages());
 
+        // Setup subscription (ini sudah benar)
         const channel = supabase
             .channel("messages-channel")
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "message" },
                 () => {
-                    fetchMessages();
+                    // -- Panggil Thunk lagi jika ada data baru dari subscription --
+                    dispatch(fetchMessages());
                 }
             )
             .subscribe();
@@ -69,53 +81,18 @@ export default function MessagePage() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, []);
+    }, [dispatch]); // tambahkan dispatch ke dependency array
 
-    async function fetchMessages() {
-        const { data: messagesData, error } = await supabase
-            .from("message")
-            .select("*")
-            .order("created_at", { ascending: false })
-            .limit(50);
-        
-        if (error || !messagesData) return;
+    // Fungsi fetchMessages() YANG LAMA sudah dihapus, karena logikanya pindah ke Thunk
 
-        const repliedMessageIds = new Set<number>();
-        messagesData.forEach(msg => {
-            if (msg.reply_to) repliedMessageIds.add(msg.reply_to);
-        });
-
-        let originalMessages: { [id: number]: Message } = {};
-        if (repliedMessageIds.size > 0) {
-            const { data: originalData } = await supabase
-                .from("message")
-                .select("id, message, email")
-                .in("id", Array.from(repliedMessageIds));
-
-            if (originalData) {
-                originalData.forEach(msg => {
-                    originalMessages[msg.id] = msg as Message;
-                });
-            }
-        }
-
-        const populatedMessages = messagesData.map(msg => ({
-            ...msg,
-            original_message: msg.reply_to ? originalMessages[msg.reply_to] : null
-        }));
-
-        setMessages(populatedMessages as Message[]);
-    }
-
-    async function sendMessage() {
+    // -- Modifikasi fungsi sendMessage untuk dispatch Thunk --
+    async function handleSendMessage() {
         if (!input.trim() || !session) return;
-        const data = {
-            user_id: session.user.id,
-            message: input,
-            email: session.user.email,
-            reply_to: replyingTo ? replyingTo.id : null,
-        };
-        await supabase.from("message").insert(data);
+        
+        // Panggil Thunk sendMessage
+        dispatch(sendMessage({ input, session, replyingTo }));
+
+        // Reset input lokal
         setInput("");
         setReplyingTo(null);
     }
@@ -130,8 +107,8 @@ export default function MessagePage() {
     const cancelReply = () => setReplyingTo(null);
 
     const renderMessage = ({ item }: { item: Message }) => {
+        
         const isMe = item.user_id === session?.user.id;
-
         const MessageBubble = (
             <View
                 style={{
@@ -186,7 +163,6 @@ export default function MessagePage() {
                 renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, () => handleReply(item))}
                 overshootRight={false}
             >
-                {/* Di mobile, bubble tidak perlu margin karena sudah di-handle oleh Swipeable */}
                 <View style={{ alignSelf: isMe ? 'flex-end' : 'flex-start' }}>
                     {MessageBubble}
                 </View>
@@ -202,8 +178,14 @@ export default function MessagePage() {
                 keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
             >
                 <SafeAreaView className="flex-1 p-4">
+                    {/* Tampilkan loading spinner jika status 'loading' */}
+                    {messageStatus === 'loading' && messages.length === 0 && (
+                        <View className="absolute top-0 left-0 right-0 p-2 items-center">
+                            <Text className="text-gray-500">Loading messages...</Text>
+                        </View>
+                    )}
                     <FlatList
-                        data={messages}
+                        data={messages} // <-- Data diambil dari Redux
                         keyExtractor={(item) => item.id.toString()}
                         inverted
                         renderItem={renderMessage}
@@ -228,7 +210,8 @@ export default function MessagePage() {
                                 placeholder="Type a message..."
                                 className="flex-1 border border-neutral-300 rounded-2xl px-3 py-2 mr-2"
                             />
-                            <Button title="Send" onPress={sendMessage} disabled={!input.trim()} />
+                            {/* Panggil handleSendMessage */}
+                            <Button title="Send" onPress={handleSendMessage} disabled={!input.trim()} />
                         </View>
                     </View>
                 </SafeAreaView>
