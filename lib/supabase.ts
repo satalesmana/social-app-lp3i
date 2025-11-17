@@ -1,8 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { createClient } from '@supabase/supabase-js'
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@env'
+import Constants from 'expo-constants'
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error("Supabase URL atau Anon Key tidak ditemukan! Pastikan app.json sudah benar.")
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
     autoRefreshToken: true,
@@ -13,12 +20,13 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 export const uploadImage = async (base64: string, fileName: string) => {
   const binary = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+
   const { data, error } = await supabase.storage
-    .from('social-apps') // replace with your bucket name
+    .from('social-apps')
     .upload(`${fileName}`, binary, {
       cacheControl: '3600',
       upsert: false,
-      contentType: 'image/jpeg', // or detect dynamically
+      contentType: 'image/jpeg',
     })
 
   if (error) {
