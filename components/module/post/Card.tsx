@@ -7,7 +7,7 @@ interface CardDataInterface{
     createdby: string;
     text: string;
     comments: Array<string>
-    post_like: Array<any>
+    post_likes: Array<any>
     post_comments:  Array<any>
     shares: Array<string>
     likes: Array<string>
@@ -21,7 +21,7 @@ interface CardProps {
 }
 
 export const PostCard:React.FC<CardProps> = ({data, userId, onlikeAction, onDetail }) => {
-    const hasLike = data.post_like.filter((item)=> item.user_id == userId).length > 0
+    const hasLike = data.post_likes.filter((item)=> item.user_id == userId).length > 0
 
     return (
         <View key={data.id} className="border-b border-gray-200 p-4 my-1 bg-white">
@@ -67,7 +67,7 @@ export const PostCard:React.FC<CardProps> = ({data, userId, onlikeAction, onDeta
                             <Ionicons name="heart-outline" size={20} color="gray" />  
                         }
                     </Pressable>
-                    <Text className="text-gray-500">{data.post_like.length}</Text>
+                    <Text className="text-gray-500">{data.post_likes.length}</Text>
                 </View>
             </View>
         </View>
