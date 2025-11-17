@@ -24,19 +24,19 @@ export default function TabLayout() {
           <Pressable 
             className="text-lg mb-4"
             onPress={()=> router.push("/(home)")}>
-              {i18n.t('menu_home')}
+              <Text>{i18n.t('menu_home')}</Text>
           </Pressable>
           
           <Pressable 
             className="text-lg mb-4"
             onPress={()=> router.push("/message")}>
-              Message
+              <Text>Message</Text>
           </Pressable>
 
           <Pressable 
             className="text-lg mb-4"
             onPress={()=> router.push("/(account)")}>
-              Account
+              <Text>Account</Text>
           </Pressable>
 
           <TouchableOpacity 

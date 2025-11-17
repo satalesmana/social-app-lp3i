@@ -7,8 +7,6 @@ import { supabase } from "../../lib/supabase";
 import dayjs from 'dayjs';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
-
-// -- IMPORT REDUX --
 import { useAppSelector, useAppDispatch } from '../../lib/redux/hooks';
 import { fetchMessages, sendMessage } from '../../lib/redux/messageSlice';
 
@@ -88,7 +86,14 @@ export default function MessagePage() {
     // -- Modifikasi fungsi sendMessage untuk dispatch Thunk --
     async function handleSendMessage() {
         if (!input.trim() || !session) return;
-        
+
+        console.log("LOG: Tombol Kirim Ditekan!");
+        console.log("LOG: Akan me-dispatch aksi 'sendMessage' ke Redux.");
+        console.log("LOG: Data yang dikirim:", { 
+            input: input, 
+            replyingToId: replyingTo ? replyingTo.id : null 
+        });
+
         // Panggil Thunk sendMessage
         dispatch(sendMessage({ input, session, replyingTo }));
 

@@ -5,7 +5,7 @@ interface CardDataInterface{
     image?: string;
     comments: string;
     created_at: string;
-    email: string; // Pastikan 'email' ada di tipe ini
+    email: string;
 }
 
 interface CardProps {
@@ -22,10 +22,8 @@ export const CommentsCard:React.FC<CardProps> = ({data }) => {
                     className="w-10 h-10 rounded-full mr-3"
                     />
                 <View>
-                    {/* --- PERUBAHAN DI SINI --- */}
                     <Text className="font-bold">{data.email}</Text> 
                     <Text className="text-gray-500">{data.email}</Text>
-                    {/* --- AKHIR PERUBAHAN --- */}
                 </View>
             </View>
             <Text className="mb-2">{data.comments}</Text>

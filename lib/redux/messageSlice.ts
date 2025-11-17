@@ -15,10 +15,18 @@ type Message = {
     } | null;
 };
 
+// Tipe untuk state slice
 interface MessageState {
   messages: Message[];
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
+}
+
+// Tipe untuk argumen sendMessage
+interface SendMessageArgs {
+  input: string;
+  session: Session;
+  replyingTo: Message | null;
 }
 
 const initialState: MessageState = {
@@ -27,17 +35,21 @@ const initialState: MessageState = {
   error: null,
 };
 
-
 export const fetchMessages = createAsyncThunk(
   'messages/fetchMessages',
   async () => {
+    console.log("REDUX THUNK: Menjalankan 'fetchMessages'..."); 
+    
     const { data: messagesData, error } = await supabase
         .from("message")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(50);
     
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("REDUX THUNK ERROR (fetch):", error.message);
+      throw new Error(error.message);
+    }
     if (!messagesData) return [] as Message[];
 
     // Logika untuk mengambil balasan (reply)
@@ -65,21 +77,17 @@ export const fetchMessages = createAsyncThunk(
         original_message: msg.reply_to ? originalMessages[msg.reply_to] : null
     }));
 
+    console.log(`REDUX THUNK: 'fetchMessages' selesai, ${populatedMessages.length} pesan ditemukan.`);
     return populatedMessages as Message[];
   }
 );
 
-interface SendMessageArgs {
-  input: string;
-  session: Session;
-  replyingTo: Message | null;
-}
 
-// Buat AsyncThunk untuk SEND Message
-// Ini akan menggantikan fungsi sendMessage() di komponen Anda
 export const sendMessage = createAsyncThunk(
   'messages/sendMessage',
   async ({ input, session, replyingTo }: SendMessageArgs) => {
+    console.log("REDUX THUNK: Menjalankan 'sendMessage'...", { input, replyingToId: replyingTo?.id });
+
     const data = {
         user_id: session.user.id,
         message: input,
@@ -90,23 +98,22 @@ export const sendMessage = createAsyncThunk(
     const { data: newMessages, error } = await supabase
         .from("message")
         .insert(data)
-        .select();
+        .select(); 
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("REDUX THUNK ERROR (send):", error.message);
+      throw new Error(error.message);
+    }
     
-    // Kita return data baru, meskipun subscription akan fetch ulang
-    // Ini bisa dipakai untuk 'optimistic update' nanti
+    console.log("REDUX THUNK: 'sendMessage' berhasil, data baru:", newMessages?.[0]);
     return newMessages?.[0] as Message; 
   }
 );
 
-// Buat Slice
 const messageSlice = createSlice({
   name: 'messages',
   initialState,
-  // 'reducers' untuk aksi sinkron biasa (tidak kita pakai sekarang)
   reducers: {},
-  // 'extraReducers' untuk menangani aksi dari createAsyncThunk
   extraReducers: (builder) => {
     builder
       // Kasus untuk fetchMessages
@@ -115,17 +122,21 @@ const messageSlice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action: PayloadAction<Message[]>) => {
         state.status = 'succeeded';
-        state.messages = action.payload; // Masukkan data pesan ke state
+        state.messages = action.payload;
       })
       .addCase(fetchMessages.rejected, (state, action) => {
         state.status = 'failed';
         state.error = action.error.message || 'Gagal mengambil pesan';
       })
-      // Kasus untuk sendMessage (tidak mengubah state, karena kita andalkan subscription)
+      // Kasus untuk sendMessage
+      .addCase(sendMessage.pending, (state) => {
+      })
       .addCase(sendMessage.fulfilled, (state, action) => {
-        // Kita bisa saja menambahkan 'action.payload' ke 'state.messages' di sini
-        // Tapi karena Anda pakai real-time subscription, kita biarkan
-        // subscription yang mentrigger fetchMessages() agar data selalu sinkron.
+        // Tidak perlu menambahkan ke state 'messages' secara manual
+        // karena subscription Anda akan memicu 'fetchMessages'
+      })
+      .addCase(sendMessage.rejected, (state, action) => {
+        state.error = action.error.message || 'Gagal mengirim pesan';
       });
   },
 });

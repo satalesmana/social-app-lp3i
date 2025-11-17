@@ -30,7 +30,6 @@ export default function CommentsPage(){
         const { data, error } = await supabase
               .schema('public')
               .from("post_comments")
-              // Ambil juga email untuk ditampilkan
               .select("id, comments, image, created_at, email") 
               .order("created_at", { ascending: false })
               .eq("post_id", id);
@@ -53,7 +52,7 @@ export default function CommentsPage(){
         const dataToInsert = {
             post_id: id as string,
             user_id: session.user.id, 
-            email: session.user.email, // <-- Ini sudah benar
+            email: session.user.email,
             comments: commentInput,
         };
 
